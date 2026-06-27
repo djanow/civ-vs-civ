@@ -1,0 +1,8 @@
+# Fichiers sensibles
+.env
+.env.local
+*.token
+
+# Claude Code
+.claude/scheduled_tasks.json
+.claude/worktrees/

@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(rustc --version)",
+      "Bash(cargo --version)",
+      "Bash(sh -s -- -y)",
+      "WebFetch(domain:github.com)",
+      "Bash(sudo fallocate -l 2G /swapfile)",
+      "Bash(sudo chmod 600 /swapfile)",
+      "Bash(sudo mkswap /swapfile)",
+      "Bash(sudo swapon /swapfile)",
+      "Bash(npm list *)",
+      "Bash(pip list *)",
+      "Bash(systemctl --user status dione)",
+      "Bash(dione --help)",
+      "Bash(~/.cargo/bin/dione --help)",
+      "Bash(cargo install *)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "discord"
+  ]
+}
