@@ -1,31 +1,36 @@
 {
   "mcpServers": {
     "gmail": {
-      "command": "/home/freebox/.nvm/versions/node/v22.23.1/bin/google-mcp-gmail",
+      "command": "/home/freebox/.nvm/versions/node/v22.23.1/bin/node",
+      "args": ["/home/freebox/.nvm/versions/node/v22.23.1/lib/node_modules/google-mcp-suite/dist/gmail/index.js"],
       "env": {
         "GOOGLE_MCP_ACCOUNT": "jean.moreau7@gmail.com"
       }
     },
     "calendar": {
-      "command": "/home/freebox/.nvm/versions/node/v22.23.1/bin/google-mcp-calendar",
+      "command": "/home/freebox/.nvm/versions/node/v22.23.1/bin/node",
+      "args": ["/home/freebox/.nvm/versions/node/v22.23.1/lib/node_modules/google-mcp-suite/dist/calendar/index.js"],
       "env": {
         "GOOGLE_MCP_ACCOUNT": "jean.moreau7@gmail.com"
       }
     },
     "drive": {
-      "command": "/home/freebox/.nvm/versions/node/v22.23.1/bin/google-mcp-drive",
+      "command": "/home/freebox/.nvm/versions/node/v22.23.1/bin/node",
+      "args": ["/home/freebox/.nvm/versions/node/v22.23.1/lib/node_modules/google-mcp-suite/dist/drive/index.js"],
       "env": {
         "GOOGLE_MCP_ACCOUNT": "jean.moreau7@gmail.com"
       }
     },
     "sheets": {
-      "command": "/home/freebox/.nvm/versions/node/v22.23.1/bin/google-mcp-sheets",
+      "command": "/home/freebox/.nvm/versions/node/v22.23.1/bin/node",
+      "args": ["/home/freebox/.nvm/versions/node/v22.23.1/lib/node_modules/google-mcp-suite/dist/sheets/index.js"],
       "env": {
         "GOOGLE_MCP_ACCOUNT": "jean.moreau7@gmail.com"
       }
     },
     "docs": {
-      "command": "/home/freebox/.nvm/versions/node/v22.23.1/bin/google-mcp-docs",
+      "command": "/home/freebox/.nvm/versions/node/v22.23.1/bin/node",
+      "args": ["/home/freebox/.nvm/versions/node/v22.23.1/lib/node_modules/google-mcp-suite/dist/docs/index.js"],
       "env": {
         "GOOGLE_MCP_ACCOUNT": "jean.moreau7@gmail.com"
       }
