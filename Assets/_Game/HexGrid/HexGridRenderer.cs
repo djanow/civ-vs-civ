@@ -88,7 +88,7 @@ namespace CivVSCiv
                     go.name = $"T_{x}_{y}";
                     go.transform.SetParent(_gridParent);
                     go.transform.position = new Vector3(pos.x, 0, pos.z);
-                    go.transform.localScale = new Vector3(0.85f, 0.12f, 0.85f);
+                    go.transform.localScale = new Vector3(0.85f, 0.4f, 0.85f);
 
                     int idx = (int)cell.TileType;
                     if (idx < 0 || idx >= 8) idx = 0;
@@ -98,7 +98,7 @@ namespace CivVSCiv
 
                     // Mountains taller
                     if (cell.TileType == TileType.Mountain)
-                        go.transform.localScale = new Vector3(0.85f, 0.5f, 0.85f);
+                        go.transform.localScale = new Vector3(0.85f, 0.8f, 0.85f);
 
                     count++;
                 }
