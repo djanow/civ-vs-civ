@@ -1,12 +1,7 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace CivVSCiv
 {
-    /// <summary>
-    /// Démarre automatiquement le jeu sans scène pré-configurée.
-    /// Crée un GameManager au chargement de n'importe quelle scène.
-    /// </summary>
     public static class AutoBootstrap
     {
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -14,36 +9,53 @@ namespace CivVSCiv
         {
             if (GameManager.Instance != null) return;
 
+            Debug.Log("[AutoBootstrap] Starting...");
+
+            // GameManager
             var go = new GameObject("GameManager");
             go.AddComponent<GameManager>();
 
-            // Camera setup if missing
+            // Camera: reuse or create
             var cam = Camera.main;
             if (cam == null)
             {
-                var camGo = new GameObject("Main Camera");
-                camGo.tag = "MainCamera";
-                cam = camGo.AddComponent<Camera>();
+                var cgo = new GameObject("Main Camera");
+                cgo.tag = "MainCamera";
+                cam = cgo.AddComponent<Camera>();
+                Debug.Log("[AutoBootstrap] Created camera");
             }
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = new Color(0.1f, 0.15f, 0.25f); // dark blue
             cam.orthographic = true;
-            cam.orthographicSize = 10f;
-            cam.nearClipPlane = 0.3f;
-            cam.farClipPlane = 200f;
-            cam.transform.position = new Vector3(30, 40, 26);
+            cam.orthographicSize = 12f;
+            cam.nearClipPlane = 0.1f;
+            cam.farClipPlane = 500f;
+            cam.transform.position = new Vector3(30, 35, 26);
             cam.transform.rotation = Quaternion.Euler(90, 0, 0);
-            cam.gameObject.AddComponent<CameraController>();
+            if (cam.GetComponent<CameraController>() == null)
+                cam.gameObject.AddComponent<CameraController>();
+            Debug.Log("[AutoBootstrap] Camera set: ortho, pos=" + cam.transform.position);
 
-            // Directional light if missing
+            // Light
             if (FindAnyObjectByType<Light>() == null)
             {
-                var lightGo = new GameObject("Directional Light");
-                var light = lightGo.AddComponent<Light>();
-                light.type = LightType.Directional;
-                light.intensity = 1f;
-                light.transform.rotation = Quaternion.Euler(50, -30, 0);
+                var lg = new GameObject("Directional Light");
+                var l = lg.AddComponent<Light>();
+                l.type = LightType.Directional;
+                l.intensity = 1.2f;
+                l.transform.rotation = Quaternion.Euler(50, -30, 0);
+                Debug.Log("[AutoBootstrap] Created light");
             }
 
-            Debug.Log("[AutoBootstrap] Scène initialisée automatiquement.");
+            // Debug cube at grid center (visible proof of life)
+            var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cube.name = "Debug_Center";
+            cube.transform.position = new Vector3(30, 0, 26);
+            cube.transform.localScale = new Vector3(3, 0.5f, 3);
+            var mr = cube.GetComponent<MeshRenderer>();
+            if (mr != null) mr.material.color = Color.red;
+
+            Debug.Log("[AutoBootstrap] Done. Debug cube at (30,0,26).");
         }
     }
 }
