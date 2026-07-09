@@ -246,7 +246,6 @@ namespace CivVSCiv
             ProcessCityProductionAndGrowth();
 
             // Mettre à jour le brouillard de guerre après la fin du tour
-            RefreshFogForCurrentPlayer();
 
             EventBus.Publish(new GameEvents.TurnEnded
             {
@@ -389,7 +388,6 @@ namespace CivVSCiv
                 _unitManager.RefreshMovementForPlayer(playerIndex);
 
             // Mettre à jour la visibilité (brouillard de guerre)
-            RefreshFogForCurrentPlayer();
 
             // Verifier les evenements narratifs en attente
             StartCoroutine(CheckNarrativeEvent(playerIndex));
@@ -400,7 +398,6 @@ namespace CivVSCiv
         /// recalcule les cellules visibles à partir de toutes ses unités,
         /// puis met à jour l'affichage des quads de brouillard.
         /// </summary>
-        private void RefreshFogForCurrentPlayer()
         {
             int playerIndex = CurrentPlayerIndex;
             if (playerIndex < 0) return;
@@ -408,9 +405,6 @@ namespace CivVSCiv
             if (_unitManager != null)
                 _unitManager.UpdatePlayerVisibility(playerIndex);
 
-            var fogRenderer = FindAnyObjectByType<FogOfWarRenderer>();
-            if (fogRenderer != null)
-                fogRenderer.UpdateAllFogQuads();
         }
 
         /// <summary>

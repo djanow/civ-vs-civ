@@ -48,12 +48,7 @@ namespace CivVSCiv
 
             MakeUnitsVisible(um);
 
-            var fogRenderer = FindAnyObjectByType<FogOfWarRenderer>();
-            if (fogRenderer != null && um != null)
-            {
-                for (int i = 0; i < 2; i++) um.UpdatePlayerVisibility(i);
-                fogRenderer.UpdateAllFogQuads();
-            }
+
 
             return true;
         }

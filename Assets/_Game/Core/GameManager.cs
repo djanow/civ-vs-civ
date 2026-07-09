@@ -113,7 +113,6 @@ namespace CivVSCiv
             _interludeManager = FindOrCreate<InterludeManager>("InterludeManager");
             _researchManager = FindOrCreate<ResearchManager>("ResearchManager");
 
-            // Grid renderer (avec FogOfWar)
             _gridRenderer = FindAnyObjectByType<HexGridRenderer>();
             if (_gridRenderer == null)
             {
@@ -124,11 +123,7 @@ namespace CivVSCiv
             // InputHandler (sélection et déplacement d'unités)
             FindOrCreate<InputHandler>("InputHandler");
 
-            // FogOfWar (pairé avec le renderer)
-            if (FindAnyObjectByType<FogOfWarRenderer>() == null)
             {
-                var fogGo = new GameObject("FogOfWar");
-                fogGo.AddComponent<FogOfWarRenderer>();
             }
 
             // Créer le MinimapWidget
