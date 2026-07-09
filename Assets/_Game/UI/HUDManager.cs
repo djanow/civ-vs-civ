@@ -18,6 +18,10 @@ namespace CivVSCiv
         private Button _rechercherBtn;
         private Button _sauverBtn;
 
+        // Turn guidance button (bottom center)
+        private Button _nextBtn;
+        private Text _nextLabel;
+
         // Start screen
         private GameObject _startScreen;
         private bool _gameStarted;
@@ -117,6 +121,9 @@ namespace CivVSCiv
             _phaseText.alignment = TextAnchor.MiddleCenter;
             _phaseText.color = new Color(1, 1, 1, 0.8f);
             _phaseText.gameObject.SetActive(false);
+
+            // Turn guidance button (bottom center)
+            CreateNextButton(canvas.transform);
         }
 
         private Text CreateText(string name, Transform parent, string content, int fontSize)
@@ -132,6 +139,59 @@ namespace CivVSCiv
             return txt;
         }
 
+        // ----------------------------------------------------------------
+        // Turn guidance button
+        // ----------------------------------------------------------------
+
+        /// <summary>
+        /// Cree le bouton "SUIVANT" en bas au centre de l'ecran.
+        /// </summary>
+        private void CreateNextButton(Transform parent)
+        {
+            var btnGo = new GameObject("NextBtn", typeof(Image), typeof(Button));
+            btnGo.transform.SetParent(parent, false);
+            var btnRT = btnGo.GetComponent<RectTransform>();
+            btnRT.anchorMin = new Vector2(0.38f, 0.02f);
+            btnRT.anchorMax = new Vector2(0.62f, 0.10f);
+            btnRT.offsetMin = btnRT.offsetMax = Vector2.zero;
+            var btnImg = btnGo.GetComponent<Image>();
+            btnImg.color = new Color(0.9f, 0.7f, 0.1f); // Doré / ambré
+
+            // Label du bouton (consigne contextuelle)
+            _nextLabel = CreateText("NextLabel", btnGo.transform, "SUIVANT ➔", 28);
+            var nlRT = _nextLabel.GetComponent<RectTransform>();
+            nlRT.anchorMin = Vector2.zero; nlRT.anchorMax = Vector2.one;
+            nlRT.offsetMin = nlRT.offsetMax = Vector2.zero;
+            _nextLabel.alignment = TextAnchor.MiddleCenter;
+            _nextLabel.color = Color.white;
+            _nextLabel.raycastTarget = false;
+
+            _nextBtn = btnGo.GetComponent<Button>();
+            _nextBtn.onClick.AddListener(OnNextClicked);
+
+            // Cacher initialement (affiche par OnPhaseChanged)
+            btnGo.SetActive(false);
+        }
+
+        /// <summary>
+        /// Affiche le bouton avec un texte de guidance personnalise.
+        /// Le texte de la consigne est suivi d'une fleche.
+        /// </summary>
+        private void ShowNextButton(string text)
+        {
+            _nextBtn.gameObject.SetActive(true);
+            _nextLabel.text = text + "  ➔";
+        }
+
+        /// <summary>
+        /// Appele au clic sur "SUIVANT". Avance a la phase suivante.
+        /// </summary>
+        private void OnNextClicked()
+        {
+            var tm = GameManager.Instance?.TurnManager;
+            if (tm != null) tm.EndTurn();
+        }
+
         private void OnPhaseChanged(GameEvents.TurnPhaseChanged evt)
         {
             string[] phaseNames = { "Événement", "Mouvement", "Ville", "Diplomatie", "Recherche", "Fin de tour" };
@@ -139,6 +199,35 @@ namespace CivVSCiv
             _phaseText.text = pName;
             _phaseText.gameObject.SetActive(true);
             Invoke(nameof(HidePhaseText), 1.5f);
+
+            // Mettre a jour le texte du bouton de guidage selon la phase
+            UpdateGuidanceForPhase(evt.Phase);
+        }
+
+        /// <summary>
+        /// Met a jour le texte et la visibilite du bouton de guidage
+        /// en fonction de la phase de jeu courante.
+        /// </summary>
+        private void UpdateGuidanceForPhase(TurnPhase phase)
+        {
+            switch (phase)
+            {
+                case TurnPhase.Movement:
+                    ShowNextButton("Deplacez vos unites");
+                    break;
+                case TurnPhase.CityManagement:
+                    ShowNextButton("Gerer les cites");
+                    break;
+                case TurnPhase.Research:
+                    ShowNextButton("Choisissez une technologie");
+                    break;
+                case TurnPhase.EndOfTurn:
+                    ShowNextButton("Fin du tour");
+                    break;
+                default:
+                    _nextBtn.gameObject.SetActive(false);
+                    break;
+            }
         }
 
         private void HidePhaseText() { if (_phaseText != null) _phaseText.gameObject.SetActive(false); }
