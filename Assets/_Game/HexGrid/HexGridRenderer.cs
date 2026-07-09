@@ -86,6 +86,7 @@ namespace CivVSCiv
                         var tile = Instantiate(_tilePrefabs[idx], _gridParent);
                         tile.name = $"T_{x}_{y}";
                         tile.transform.position = new Vector3(pos.x, 0, pos.z);
+                        tile.transform.localScale = new Vector3(0.95f, 1f, 0.95f);
                         // KayKit tiles are flat-top, no rotation needed
 
                         if (_decoPrefabs[idx] != null)
