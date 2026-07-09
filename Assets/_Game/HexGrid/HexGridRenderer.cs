@@ -113,20 +113,9 @@ namespace CivVSCiv
 
         public Vector3 HexToWorld(HexCoordinates hex)
         {
-            // Flat-top projection on a cylinder (globe effect)
             float x = _hexSize * (1.5f * hex.Q);
             float z = _hexSize * (Mathf.Sqrt(3f) / 2f * hex.Q + Mathf.Sqrt(3f) * hex.R);
-            // Wrap x for cylinder
-            float mapWidth = _hexSize * 1.5f * (_width > 0 ? _width : 40);
-            if (x < 0) x += mapWidth;
-            if (x >= mapWidth) x -= mapWidth;
-            // Globe curvature
-            float halfH = (_height > 0 ? _height : 30) * 0.5f;
-            float normY = (hex.R - halfH) / halfH; // -1 (south pole) to +1 (north pole)
-            float angle = normY * Mathf.PI * 0.45f; // curve factor
-            float y = Mathf.Sin(angle) * halfH * 0.5f;
-            float scaleZ = Mathf.Cos(angle);
-            return new Vector3(x, y, z * scaleZ);
+            return new Vector3(x, 0f, z);
         }
 
         public HexCoordinates WorldToHex(Vector3 wp)

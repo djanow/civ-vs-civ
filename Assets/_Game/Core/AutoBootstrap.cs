@@ -20,11 +20,11 @@ namespace CivVSCiv
                 if (cam == null) { var cgo = new GameObject("Main Camera"); cgo.tag = "MainCamera"; cam = cgo.AddComponent<Camera>(); }
                 cam.clearFlags = CameraClearFlags.SolidColor;
                 cam.backgroundColor = new Color(0.05f, 0.08f, 0.15f);
-                cam.orthographic = false;
-                cam.fieldOfView = 60f;
+                cam.orthographic = true;
+                cam.orthographicSize = 22f;
                 cam.nearClipPlane = 0.1f; cam.farClipPlane = 500f;
-                cam.transform.position = new Vector3(30, 28.7f, 46.1f);
-                cam.transform.rotation = Quaternion.identity;
+                cam.transform.position = new Vector3(35, 35, 25);
+                cam.transform.rotation = Quaternion.Euler(55, 0, 0);
                 if (cam.GetComponent<CameraController>() == null)
                 {
                     var cc = cam.gameObject.AddComponent<CameraController>();
