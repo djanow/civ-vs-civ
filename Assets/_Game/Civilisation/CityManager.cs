@@ -29,6 +29,12 @@ namespace CivVSCiv
         public string CurrentProduction;
         public int CurrentProductionCost;
         public int ProductionStored;
+        public int FoodStored;
+
+        /// <summary>
+        /// Seuil de croissance démographique : 10 + Population * 5.
+        /// </summary>
+        public int FoodThreshold => 10 + Population * 5;
 
         /// <summary>
         /// Construit une instance à partir des données de base.
@@ -40,6 +46,7 @@ namespace CivVSCiv
             CurrentProduction = null;
             CurrentProductionCost = 0;
             ProductionStored = 0;
+            FoodStored = 0;
         }
 
         public int CalculateFoodYield(HexCell[,] cells) => Population * 2;
@@ -61,8 +68,8 @@ namespace CivVSCiv
     public class CityManager : MonoBehaviour
     {
         [Header("Visuel des cités sur la carte")]
-        [SerializeField] private float _cityMarkerHeight = 0.6f;
-        [SerializeField] private float _cityMarkerRadius = 0.35f;
+        [SerializeField] private float _cityMarkerHeight = 1.5f;
+        [SerializeField] private float _cityMarkerRadius = 0.3f;
 
         private List<CityData> _allCities = new List<CityData>();
         private readonly List<City> _runtimeCities = new List<City>();

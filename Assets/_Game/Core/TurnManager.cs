@@ -70,39 +70,57 @@ namespace CivVSCiv
         {
             _phaseIndex++;
 
-            if (_phaseIndex >= PlayerPhases.Length)
+            while (true)
             {
-                // Fin du tour du joueur courant
-                yield return ProcessEndOfTurn();
-
-                _phaseIndex = 0;
-
-                // Passer au joueur suivant
-                CurrentPlayerIndex++;
-                if (CurrentPlayerIndex >= _playerCount)
+                if (_phaseIndex >= PlayerPhases.Length)
                 {
-                    CurrentPlayerIndex = 0;
-                    CurrentTurn++;
+                    // Fin du tour du joueur courant
+                    yield return ProcessEndOfTurn();
+
+                    _phaseIndex = 0;
+
+                    // Passer au joueur suivant
+                    CurrentPlayerIndex++;
+                    if (CurrentPlayerIndex >= _playerCount)
+                    {
+                        CurrentPlayerIndex = 0;
+                        CurrentTurn++;
+                    }
+
+                    yield return new WaitForSeconds(_phaseDelay);
+                    BeginPlayerTurn(CurrentPlayerIndex);
+
+                    // BeginPlayerTurn démarre sa propre coroutine narrative ;
+                    // on sort de la boucle ici et on attend le clic "Fin de tour"
+                    // pour lancer un nouveau AdvancePhase.
+                    yield break;
                 }
-
-                yield return new WaitForSeconds(_phaseDelay);
-                BeginPlayerTurn(CurrentPlayerIndex);
-            }
-            else
-            {
-                CurrentPhase = PlayerPhases[_phaseIndex];
-
-                // Traitement automatique selon la phase
-                yield return ProcessPhase(CurrentPhase);
-
-                EventBus.Publish(new GameEvents.TurnPhaseChanged
+                else
                 {
-                    Phase = CurrentPhase,
-                    TurnNumber = CurrentTurn,
-                    PlayerIndex = CurrentPlayerIndex
-                });
+                    CurrentPhase = PlayerPhases[_phaseIndex];
 
-                yield return new WaitForSeconds(_phaseDelay);
+                    // Traitement automatique selon la phase
+                    yield return ProcessPhase(CurrentPhase);
+
+                    EventBus.Publish(new GameEvents.TurnPhaseChanged
+                    {
+                        Phase = CurrentPhase,
+                        TurnNumber = CurrentTurn,
+                        PlayerIndex = CurrentPlayerIndex
+                    });
+
+                    yield return new WaitForSeconds(_phaseDelay);
+
+                    // Movement nécessite l'interaction du joueur humain → on s'arrête
+                    if (CurrentPhase == TurnPhase.Movement && CurrentPlayerIndex == 0)
+                    {
+                        yield break;
+                    }
+
+                    // Phases non-interactives : avance automatique après un court délai
+                    yield return new WaitForSeconds(0.5f);
+                    _phaseIndex++;
+                }
             }
         }
 
@@ -159,12 +177,17 @@ namespace CivVSCiv
 
         /// <summary>
         /// Traite la fin de tour complète d'un joueur.
-        /// Inclut le traitement de la production des cités.
+        /// Inclut la production des cités, la croissance démographique,
+        /// l'accumulation des ressources (or, science, culture),
+        /// et la mise à jour du brouillard de guerre.
         /// </summary>
         private IEnumerator ProcessEndOfTurn()
         {
-            // Traiter la production des cités du joueur courant
-            ProcessCityProduction();
+            // Traiter la production, les yields et la croissance des cités
+            ProcessCityProductionAndGrowth();
+
+            // Mettre à jour le brouillard de guerre après la fin du tour
+            RefreshFogForCurrentPlayer();
 
             EventBus.Publish(new GameEvents.TurnEnded
             {
@@ -176,10 +199,10 @@ namespace CivVSCiv
         }
 
         /// <summary>
-        /// Traite la production tour-par-tour pour toutes les cités
-        /// du joueur courant.
+        /// Traite la production, les yields (ressources) et la croissance
+        /// démographique pour toutes les cités du joueur courant.
         /// </summary>
-        private void ProcessCityProduction()
+        private void ProcessCityProductionAndGrowth()
         {
             var cityManager = GameManager.Instance?.CityManager;
             if (cityManager == null) return;
@@ -195,7 +218,31 @@ namespace CivVSCiv
                 if (cityData == null || cityData.OwnerIndex != CurrentPlayerIndex)
                     continue;
 
-                // Traiter la production si quelque chose est en construction
+                // ---- Yields par tour ----
+                int foodYield = city.CalculateFoodYield(cells);
+                int goldYield = city.CalculateGoldYield(cells);
+                int scienceYield = city.Population;        // Science = Population
+                int cultureYield = Mathf.Max(1, city.Population / 2); // Culture = Pop/2 (min 1)
+
+                // Nourriture : accumulation et croissance démographique
+                city.FoodStored += foodYield;
+                while (city.FoodStored >= city.FoodThreshold)
+                {
+                    city.FoodStored -= city.FoodThreshold;
+                    cityData.Population++;
+                    city.Population = cityData.Population;
+                    Debug.Log($"[TurnManager] {city.CityName} a grandi ! Population : {city.Population}");
+                }
+
+                // Or : accumulation dans le GameManager
+                if (GameManager.Instance != null)
+                {
+                    GameManager.Instance.ModifyGold(CurrentPlayerIndex, goldYield);
+                    GameManager.Instance.ModifyScience(CurrentPlayerIndex, scienceYield);
+                    GameManager.Instance.ModifyCulture(CurrentPlayerIndex, cultureYield);
+                }
+
+                // ---- Production ----
                 if (!string.IsNullOrEmpty(city.CurrentProduction))
                 {
                     ProductionManager.ProcessCityProduction(city, cells);
@@ -206,6 +253,7 @@ namespace CivVSCiv
         /// <summary>
         /// Démarre le tour d'un joueur en commençant par la phase NarrativeEvent.
         /// Si un événement est en attente, le cycle normal est suspendu.
+        /// Rafraîchit également le brouillard de guerre et les mouvements.
         /// </summary>
         private void BeginPlayerTurn(int playerIndex)
         {
@@ -218,8 +266,33 @@ namespace CivVSCiv
                 PlayerIndex = playerIndex
             });
 
+            // Rafraîchir les points de mouvement des unités du joueur
+            if (_unitManager != null)
+                _unitManager.RefreshMovementForPlayer(playerIndex);
+
+            // Mettre à jour la visibilité (brouillard de guerre)
+            RefreshFogForCurrentPlayer();
+
             // Verifier les evenements narratifs en attente
             StartCoroutine(CheckNarrativeEvent(playerIndex));
+        }
+
+        /// <summary>
+        /// Rafraîchit le brouillard de guerre pour le joueur courant :
+        /// recalcule les cellules visibles à partir de toutes ses unités,
+        /// puis met à jour l'affichage des quads de brouillard.
+        /// </summary>
+        private void RefreshFogForCurrentPlayer()
+        {
+            int playerIndex = CurrentPlayerIndex;
+            if (playerIndex < 0) return;
+
+            if (_unitManager != null)
+                _unitManager.UpdatePlayerVisibility(playerIndex);
+
+            var fogRenderer = FindAnyObjectByType<FogOfWarRenderer>();
+            if (fogRenderer != null)
+                fogRenderer.UpdateAllFogQuads();
         }
 
         /// <summary>

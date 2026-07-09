@@ -108,7 +108,7 @@ namespace CivVSCiv
             }
         }
 
-        private void UpdateAllFogQuads()
+        public void UpdateAllFogQuads()
         {
             if (_fogQuads == null) return;
 

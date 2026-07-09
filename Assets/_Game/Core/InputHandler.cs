@@ -125,12 +125,12 @@ namespace CivVSCiv
             // ---- Cas 2 : Une unité est sélectionnée ----
             if (_selectedUnit != null)
             {
-                // Clic sur une unité ennemie adjacente → aperçu combat
+                // Clic sur une unité ennemie adjacente → exécuter le combat
                 if (unitAtHex != null && unitAtHex.OwnerIndex != currentPlayer && !unitAtHex.IsDead())
                 {
                     if (_selectedUnit.Position.DistanceTo(clickedHex) == 1)
                     {
-                        PreviewCombat(unitAtHex);
+                        ExecuteCombat(unitAtHex);
                     }
                     return;
                 }
@@ -316,13 +316,15 @@ namespace CivVSCiv
         }
 
         // ----------------------------------------------------------------
-        // Aperçu combat
+        // Exécution du combat
         // ----------------------------------------------------------------
 
         /// <summary>
-        /// Affiche un aperçu des chances de combat dans la console.
+        /// Exécute le combat entre l'unité sélectionnée et une unité ennemie adjacente.
+        /// Applique les dégâts, détruit les unités mortes, gère la promotion,
+        /// et met à jour le brouillard de guerre.
         /// </summary>
-        private void PreviewCombat(Unit enemyUnit)
+        private void ExecuteCombat(Unit enemyUnit)
         {
             if (_selectedUnit == null || enemyUnit == null) return;
 
@@ -330,15 +332,40 @@ namespace CivVSCiv
             var (ex, ey) = enemyUnit.Position.ToOffset();
             var defenderCell = cells[ex, ey];
 
-            var preview = CombatResolver.PreviewCombat(_selectedUnit, enemyUnit, defenderCell);
+            // Exécuter le combat via CombatResolver
+            var result = CombatResolver.ExecuteCombat(_selectedUnit, enemyUnit, defenderCell);
 
-            string result = preview.AttackerWins ? "VICTOIRE" : "DÉFAITE";
+            string resultText = result.AttackerWins ? "VICTOIRE" : "DÉFAITE";
             Debug.Log(
-                $"<color=yellow>[Aperçu Combat]</color>\n" +
-                $"{_selectedUnit.UnitName} ({preview.AttackerTotalPower}) vs {enemyUnit.UnitName} ({preview.DefenderTotalPower})\n" +
-                $"Dégâts subis : {preview.AttackerDamage} | Dégâts infligés : {preview.DefenderDamage}\n" +
-                $"Résultat prévu : <b>{result}</b>"
+                $"<color=orange>[COMBAT]</color>\n" +
+                $"{_selectedUnit.UnitName} ({result.AttackerTotalPower}) vs {enemyUnit.UnitName} ({result.DefenderTotalPower})\n" +
+                $"Dégâts subis : {result.AttackerDamage} | Dégâts infligés : {result.DefenderDamage}\n" +
+                $"Résultat : <b>{resultText}</b>"
             );
+
+            // Détruire le défenseur si mort
+            if (result.DefenderKilled)
+            {
+                Debug.Log($"<color=orange>[COMBAT] {enemyUnit.UnitName} a été détruit !</color>");
+                _unitManager.DestroyUnit(enemyUnit);
+            }
+
+            // Si l'attaquant est mort
+            if (_selectedUnit.IsDead())
+            {
+                Debug.Log($"<color=red>[COMBAT] {_selectedUnit.UnitName} a été détruit !</color>");
+                _unitManager.DestroyUnit(_selectedUnit);
+                _selectedUnit = null;
+                DeselectUnit();
+            }
+            else if (result.DefenderKilled && _selectedUnit.VeterancyRank >= 1)
+            {
+                // Promotion obtenue via CombatResolver, logger le nouveau rang
+                Debug.Log($"<color=yellow>[COMBAT] {_selectedUnit.UnitName} promu au rang {_selectedUnit.VeterancyRank} !</color>");
+            }
+
+            // Mettre à jour le brouillard de guerre
+            UpdateFogAfterMovement();
         }
 
         // ----------------------------------------------------------------
