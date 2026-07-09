@@ -87,7 +87,8 @@ namespace CivVSCiv
                         tile.name = $"T_{x}_{y}";
                         tile.transform.position = new Vector3(pos.x, 0, pos.z);
                         tile.transform.localScale = new Vector3(0.95f, 1f, 0.95f);
-                        // KayKit tiles are flat-top, no rotation needed
+                        tile.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+                        // KayKit tiles are pointy-top; rotate 90deg to match flat-top grid layout
 
                         if (_decoPrefabs[idx] != null)
                         {
