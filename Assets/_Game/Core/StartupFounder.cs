@@ -14,81 +14,48 @@ namespace CivVSCiv
             // Attendre que tout soit initialise (GameManager, generateur, spawn des unites)
             yield return new WaitForSeconds(1.5f);
 
-            try
+            bool ok = false;
+            try { ok = InitializeGame(); }
+            catch (System.Exception e) { Debug.LogError($"[Startup] Initialization failed: {e}"); }
+            if (ok) Debug.Log("[Startup] Initialisation terminee. Pret a jouer !");
+        }
+
+        private bool InitializeGame()
+        {
+            var gm = GameManager.Instance;
+            if (gm == null) { Debug.LogError("[Startup] GameManager.Instance is null"); return false; }
+            if (gm.CurrentState != GameState.Playing) { Debug.LogWarning("[Startup] Game not in Playing state"); return false; }
+
+            var cm = gm.CityManager;
+            var um = gm.UnitManager;
+            if (cm == null || um == null) { Debug.LogError("[Startup] CityManager or UnitManager is null"); return false; }
+
+            Debug.Log($"[Startup] Found {um.AllUnits.Count} units on map");
+
+            var civs = new[] { "Tyr", "Athènes" };
+            for (int i = 0; i < 2 && i < civs.Length; i++)
             {
-                var gm = GameManager.Instance;
-                if (gm == null)
+                var startPos = FindStartPosition(gm, i);
+                if (startPos != null)
                 {
-                    Debug.LogError("[Startup] GameManager.Instance is null");
-                    yield break;
+                    var city = cm.AddCity(civs[i], i, startPos.Coordinates, true);
+                    if (city != null)
+                        Debug.Log($"[Startup] Ville fondee: {civs[i]} a {startPos.Coordinates} pour joueur {i}");
                 }
-
-                // Attendre que la carte soit generee
-                int safetyCounter = 0;
-                while (gm.CurrentState != GameState.Playing && safetyCounter < 100)
-                {
-                    yield return null;
-                    safetyCounter++;
-                }
-                if (gm.CurrentState != GameState.Playing)
-                {
-                    Debug.LogError("[Startup] Timeout waiting for GameState.Playing");
-                    yield break;
-                }
-
-                yield return null;
-
-                var cm = gm.CityManager;
-                var um = gm.UnitManager;
-                if (cm == null || um == null)
-                {
-                    Debug.LogError("[Startup] CityManager or UnitManager is null");
-                    yield break;
-                }
-
-                Debug.Log($"[Startup] Found {um.AllUnits.Count} units on map");
-
-                // Recuperer les positions de depart depuis le generateur
-                var civs = new[] { "Tyr", "Athènes" };
-                for (int i = 0; i < 2 && i < civs.Length; i++)
-                {
-                    // Chercher un emplacement valide pres du centre gauche/droit
-                    var startPos = FindStartPosition(gm, i);
-                    if (startPos != null)
-                    {
-                        var city = cm.AddCity(civs[i], i, startPos.Coordinates, true);
-                        if (city != null)
-                            Debug.Log($"[Startup] Ville fondee: {civs[i]} a {startPos.Coordinates} pour joueur {i}");
-                        else
-                            Debug.LogWarning($"[Startup] Impossible de fonder {civs[i]} a {startPos.Coordinates}");
-                    }
-                    else
-                    {
-                        Debug.LogError($"[Startup] Aucune position valide trouvee pour le joueur {i}");
-                    }
-                }
-
-                // Rendre les unites visibles (spheres de couleur)
-                MakeUnitsVisible(um);
-
-                // Reveler le brouillard de guerre autour des unites de chaque joueur
-                var fogRenderer = FindAnyObjectByType<FogOfWarRenderer>();
-                if (fogRenderer != null && um != null)
-                {
-                    for (int i = 0; i < 2; i++)
-                    {
-                        um.UpdatePlayerVisibility(i);
-                    }
-                    fogRenderer.UpdateAllFogQuads();
-                    Debug.Log("[Startup] Brouillard de guerre mis a jour pour les 2 joueurs");
-                }
-
-                Debug.Log("[Startup] Initialisation terminee. Pret a jouer !");
+                else
+                    Debug.LogError($"[Startup] Aucune position valide pour joueur {i}");
             }
-            catch (System.Exception e)
+
+            MakeUnitsVisible(um);
+
+            var fogRenderer = FindAnyObjectByType<FogOfWarRenderer>();
+            if (fogRenderer != null && um != null)
             {
-                Debug.LogError($"[Startup] Initialization failed: {e}");
+                for (int i = 0; i < 2; i++) um.UpdatePlayerVisibility(i);
+                fogRenderer.UpdateAllFogQuads();
             }
+
+            return true;
         }
 
         private HexCell FindStartPosition(GameManager gm, int playerIndex)
