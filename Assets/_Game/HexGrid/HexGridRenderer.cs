@@ -33,20 +33,20 @@ namespace CivVSCiv
             if (_tileMaterials == null || _tileMaterials.Length == 0)
             {
                 _tileMaterials = new Material[8];
-                Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-                if (shader == null)
-                    shader = Shader.Find("Standard");
+                Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+                if (shader == null) shader = Shader.Find("Unlit/Color");
+                if (shader == null) shader = Shader.Find("Standard");
 
                 Color[] tileColors = new Color[]
                 {
-                    new Color(0.29f, 0.56f, 0.85f),  // 0 Sea - bleu
-                    new Color(0.15f, 0.30f, 0.55f),  // 1 Ocean - bleu foncé
-                    new Color(0.54f, 0.54f, 0.54f),  // 2 Mountain - gris
-                    new Color(0.60f, 0.80f, 0.40f),  // 3 Hill - vert clair
-                    new Color(0.20f, 0.50f, 0.20f),  // 4 Forest - vert foncé
-                    new Color(0.56f, 0.78f, 0.43f),  // 5 Plain - vert
-                    new Color(0.76f, 0.70f, 0.50f),  // 6 Desert - sable
-                    new Color(0.45f, 0.55f, 0.35f),  // 7 Marsh - brun-vert
+                    new Color(0.35f, 0.70f, 0.95f),  // 0 Sea - bleu vif
+                    new Color(0.15f, 0.35f, 0.65f),  // 1 Ocean - bleu profond
+                    new Color(0.65f, 0.60f, 0.55f),  // 2 Mountain - gris chaud
+                    new Color(0.45f, 0.80f, 0.30f),  // 3 Hill - vert vif
+                    new Color(0.15f, 0.55f, 0.15f),  // 4 Forest - vert fonce
+                    new Color(0.65f, 0.85f, 0.40f),  // 5 Plain - vert clair
+                    new Color(0.90f, 0.80f, 0.50f),  // 6 Desert - sable dore
+                    new Color(0.50f, 0.60f, 0.30f),  // 7 Marsh - vert-brun
                 };
 
                 for (int i = 0; i < 8; i++)
@@ -83,6 +83,19 @@ namespace CivVSCiv
             }
             _tileObjects.Clear();
 
+            // Plan de fond sombre pour faire apparaitre les bordures entre tuiles
+            var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            ground.name = "GridGround";
+            ground.transform.SetParent(_gridParent);
+            ground.transform.position = new Vector3(_width * 0.75f, -0.05f, _height * 0.43f);
+            float gw = _width * 1.5f / 10f + 0.5f;
+            float gh = _height * Mathf.Sqrt(3f) / 10f + 0.5f;
+            ground.transform.localScale = new Vector3(gw, 1f, gh);
+            var grndMR = ground.GetComponent<MeshRenderer>();
+            var grndMat = new Material(Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Standard"));
+            grndMat.color = new Color(0.08f, 0.08f, 0.12f);
+            grndMR.sharedMaterial = grndMat;
+
             if (_hexMesh == null)
                 _hexMesh = CreateHexMesh();
 
@@ -112,14 +125,21 @@ namespace CivVSCiv
                 ? _tileMaterials[matIndex]
                 : _tileMaterials[0];
 
+            // Leger retrecissement pour creer des bordures visibles entre tuiles
+            float gap = 0.93f;
+
             // Surélévation pour collines et montagnes
             if (cell.TileType == TileType.Mountain && !cell.IsMountainPass)
             {
-                go.transform.localScale = new Vector3(1f, 1f + _mountainHeight, 1f);
+                go.transform.localScale = new Vector3(gap, gap + _mountainHeight, gap);
             }
             else if (cell.TileType == TileType.Hill)
             {
-                go.transform.localScale = new Vector3(1f, 1f + _hillHeight, 1f);
+                go.transform.localScale = new Vector3(gap, gap + _hillHeight, gap);
+            }
+            else
+            {
+                go.transform.localScale = new Vector3(gap, 1f, gap);
             }
 
             _tileObjects[cell.Coordinates] = go;
