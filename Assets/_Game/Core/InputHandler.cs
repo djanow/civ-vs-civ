@@ -262,9 +262,6 @@ namespace CivVSCiv
             if (_unitManager != null)
             {
                 _unitManager.UpdatePlayerVisibility(currentPlayer);
-                var fogRenderer = FindAnyObjectByType<FogOfWarRenderer>();
-                if (fogRenderer != null)
-                    fogRenderer.UpdateAllFogQuads();
             }
         }
 

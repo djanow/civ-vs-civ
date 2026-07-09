@@ -14,8 +14,6 @@ namespace CivVSCiv
 
         [Header("References")]
         private HexGridRenderer _gridRenderer;
-        private FogOfWarManager _fogManager;
-        private FogOfWarRenderer _fogRenderer;
 
         public List<Unit> AllUnits { get; private set; } = new();
 
@@ -31,8 +29,7 @@ namespace CivVSCiv
         private void Awake()
         {
             _gridRenderer = FindAnyObjectByType<HexGridRenderer>();
-            _fogManager = FindAnyObjectByType<FogOfWarManager>();
-            _fogRenderer = FindAnyObjectByType<FogOfWarRenderer>();
+            // Fog disabled
 
             EventBus.Subscribe<GameEvents.CivStartPositions>(OnCivStartPositions);
             EventBus.Subscribe<GameEvents.TurnPhaseChanged>(OnTurnPhaseChanged);
@@ -403,35 +400,9 @@ namespace CivVSCiv
         /// Met a jour la visibilite (fog of war) pour un joueur en fonction
         /// de la position de ses unites.
         /// </summary>
-        public void UpdatePlayerVisibility(int playerIndex)
-        {
-            if (_fogManager == null) return;
+        public void UpdatePlayerVisibility(int playerIndex) { /* Fog disabled */ }
 
-            // Effacer l'ancienne visibilite
-            _fogManager.ClearVisibility(playerIndex);
-
-            // Recalculer a partir de chaque unite
-            var playerUnits = GetPlayerUnits(playerIndex);
-            foreach (var unit in playerUnits)
-            {
-                if (unit != null && !unit.IsDead())
-                {
-                    int visionRange = GetVisionRange(unit);
-                    _fogManager.UpdateVisibility(unit.Position, visionRange, playerIndex);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Met a jour la visibilite pour une seule unite.
-        /// </summary>
-        private void UpdateUnitVisibility(Unit unit)
-        {
-            if (_fogManager == null || unit == null) return;
-
-            int visionRange = GetVisionRange(unit);
-            _fogManager.UpdateVisibility(unit.Position, visionRange, unit.OwnerIndex);
-        }
+        private void UpdateUnitVisibility(Unit unit) { /* Fog disabled */ }
 
         /// <summary>
         /// Retourne le rayon de vision d'une unite selon sa categorie.
