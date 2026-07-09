@@ -1,18 +1,16 @@
 using UnityEngine;
-using System.Collections.Generic;
 
 namespace CivVSCiv
 {
     public class HexGridRenderer : MonoBehaviour
     {
         [SerializeField] private float _hexSize = 1f;
-        [SerializeField] private float _tileHeight = 0.4f;
 
         private HexCell[,] _cells;
         private int _width, _height;
         private Transform _gridParent;
         private GameObject[] _tilePrefabs;
-        private GameObject[] _decoPrefabs; // mountains, trees, hills placed on top
+        private GameObject[] _decoPrefabs;
         private bool _useKayKit;
 
         private static readonly Color[] FallbackColors = {
@@ -22,16 +20,15 @@ namespace CivVSCiv
             new Color(0.95f, 0.85f, 0.5f), new Color(0.45f, 0.55f, 0.3f),
         };
 
-        // Exact KayKit paths (without .fbx extension, relative to Resources/)
         private static readonly (string tile, string deco)[] KayKitMapping = {
-            ("KayKit/tiles/base/hex_water",        null),                                    // 0 Sea
-            ("KayKit/tiles/base/hex_water",        null),                                    // 1 Ocean
-            ("KayKit/tiles/base/hex_grass",        "KayKit/decoration/nature/mountain_A"),   // 2 Mountain
-            ("KayKit/tiles/base/hex_grass",        "KayKit/decoration/nature/hills_A"),      // 3 Hill
-            ("KayKit/tiles/base/hex_grass",        "KayKit/decoration/nature/trees_A_medium"),// 4 Forest
-            ("KayKit/tiles/base/hex_grass",        null),                                    // 5 Plain
-            ("KayKit/tiles/base/hex_grass",        null),                                    // 6 Desert (fallback: grass)
-            ("KayKit/tiles/base/hex_grass",        null),                                    // 7 Marsh (fallback: grass)
+            ("KayKit/tiles/base/hex_water",        null),
+            ("KayKit/tiles/base/hex_water",        null),
+            ("KayKit/tiles/base/hex_grass",        "KayKit/decoration/nature/mountain_A"),
+            ("KayKit/tiles/base/hex_grass",        "KayKit/decoration/nature/hills_A"),
+            ("KayKit/tiles/base/hex_grass",        "KayKit/decoration/nature/trees_A_medium"),
+            ("KayKit/tiles/base/hex_grass",        null),
+            ("KayKit/tiles/base/hex_grass",        null),
+            ("KayKit/tiles/base/hex_grass",        null),
         };
 
         private void Awake()
@@ -53,28 +50,17 @@ namespace CivVSCiv
                 _tilePrefabs[i] = Resources.Load<GameObject>(tilePath);
                 if (!string.IsNullOrEmpty(decoPath))
                     _decoPrefabs[i] = Resources.Load<GameObject>(decoPath);
-
-                if (_tilePrefabs[i] != null)
-                {
-                    found++;
-                    string deco = _decoPrefabs[i] != null ? $" + {_decoPrefabs[i].name}" : "";
-                    Debug.Log($"[KayKit] Type {i}: {_tilePrefabs[i].name}{deco}");
-                }
+                if (_tilePrefabs[i] != null) found++;
             }
-
             _useKayKit = found >= 2;
-            Debug.Log(_useKayKit
-                ? $"[KayKit] Loaded! ({found}/8 tile types)"
-                : "[KayKit] Not enough tiles, using colored cubes");
+            Debug.Log(_useKayKit ? $"[KayKit] Loaded {found}/8 types" : "[KayKit] Fallback to cubes");
         }
 
         private void OnDestroy() => EventBus.Unsubscribe<GameEvents.MapGenerated>(OnMapGenerated);
 
         private void OnMapGenerated(GameEvents.MapGenerated evt)
         {
-            _cells = evt.Cells;
-            _width = evt.Width;
-            _height = evt.Height;
+            _cells = evt.Cells; _width = evt.Width; _height = evt.Height;
             if (!_useKayKit) LoadKayKit();
             BuildGrid();
         }
@@ -82,13 +68,6 @@ namespace CivVSCiv
         private void BuildGrid()
         {
             foreach (Transform child in _gridParent) Destroy(child.gameObject);
-
-            var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            ground.name = "GridGround"; ground.transform.SetParent(_gridParent);
-            ground.transform.position = new Vector3(_width * 0.75f, -0.1f, _height * 0.43f);
-            ground.transform.localScale = new Vector3(_width * 0.15f + 1.5f, 1f, _height * 0.09f + 1.5f);
-            ground.GetComponent<MeshRenderer>().material = new Material(Shader.Find("Standard"))
-                { color = new Color(0.04f, 0.04f, 0.08f) };
 
             int count = 0;
             for (int x = 0; x < _width; x++)
@@ -105,17 +84,12 @@ namespace CivVSCiv
                         var tile = Instantiate(_tilePrefabs[idx], _gridParent);
                         tile.name = $"T_{x}_{y}";
                         tile.transform.position = new Vector3(pos.x, 0, pos.z);
+                        // KayKit tiles are flat-top, no rotation needed
 
-                        // Mountains: bigger scale
-                        if (idx == 2) // Mountain
-                            tile.transform.localScale = Vector3.one * 1.5f;
-
-                        // Add decoration (trees, hills) on top
                         if (_decoPrefabs[idx] != null)
                         {
                             var deco = Instantiate(_decoPrefabs[idx], tile.transform);
-                            deco.transform.localPosition = Vector3.zero;
-                            deco.name = $"D_{x}_{y}";
+                            deco.transform.localPosition = new Vector3(0, 0.05f, 0);
                         }
                     }
                     else
@@ -123,22 +97,27 @@ namespace CivVSCiv
                         var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
                         go.transform.SetParent(_gridParent);
                         go.transform.position = new Vector3(pos.x, 0, pos.z);
-                        go.transform.localScale = new Vector3(0.85f, _tileHeight, 0.85f);
+                        go.transform.localScale = new Vector3(0.85f, 0.4f, 0.85f);
                         go.name = $"T_{x}_{y}";
                         go.GetComponent<MeshRenderer>().material =
                             new Material(Shader.Find("Standard")) { color = FallbackColors[idx] };
                     }
-
                     count++;
                 }
             }
         }
 
         public Vector3 HexToWorld(HexCoordinates hex)
-            => new(_hexSize * 1.5f * hex.Q, 0f, _hexSize * Mathf.Sqrt(3f) * (hex.R + hex.Q * 0.5f));
+        {
+            // Flat-top hex layout (KayKit compatible)
+            float x = _hexSize * (1.5f * hex.Q);
+            float z = _hexSize * (Mathf.Sqrt(3f) / 2f * hex.Q + Mathf.Sqrt(3f) * hex.R);
+            return new Vector3(x, 0f, z);
+        }
 
         public HexCoordinates WorldToHex(Vector3 wp)
         {
+            // Flat-top inverse
             float q = (2f / 3f) * wp.x / _hexSize;
             float r = (-1f / 3f * wp.x + Mathf.Sqrt(3f) / 3f * wp.z) / _hexSize;
             return HexRound(q, r);
