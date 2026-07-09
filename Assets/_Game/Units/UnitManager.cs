@@ -74,18 +74,22 @@ namespace CivVSCiv
         /// </summary>
         public Unit SpawnUnit(UnitData data, HexCoordinates position, int ownerIndex)
         {
-            if (_unitPrefab == null)
-            {
-                Debug.LogError("[UnitManager] Aucun prefab d'unite assigne.");
-                return null;
-            }
-
             Vector3 worldPos = _gridRenderer != null
                 ? _gridRenderer.HexToWorld(position)
                 : Vector3.zero;
 
-            GameObject go = Instantiate(_unitPrefab, worldPos, Quaternion.identity, transform);
-            go.name = $"{data.UnitName}_{position}";
+            GameObject go;
+            if (_unitPrefab != null)
+            {
+                go = Instantiate(_unitPrefab, worldPos, Quaternion.identity, transform);
+            }
+            else
+            {
+                go = new GameObject(data != null ? data.UnitName : "Unit");
+                go.transform.SetParent(transform);
+                go.transform.position = worldPos;
+            }
+            go.name = $"{(data != null ? data.UnitName : "Unit")}_{position}";
 
             Unit unit = go.GetComponent<Unit>();
             if (unit == null)

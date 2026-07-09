@@ -55,7 +55,13 @@ namespace CivVSCiv
             var mr = cube.GetComponent<MeshRenderer>();
             if (mr != null) mr.material.color = Color.red;
 
-            Debug.Log("[AutoBootstrap] Done. Debug cube at (30,0,26).");
+            // HUD
+            new GameObject("HUDManager").AddComponent<HUDManager>();
+
+            // Fonde les villes de depart pour chaque joueur
+            go.AddComponent<StartupFounder>();
+
+            Debug.Log("[AutoBootstrap] Done. Carte + HUD prets.");
         }
     }
 }
