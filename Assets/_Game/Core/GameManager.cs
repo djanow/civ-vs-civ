@@ -191,7 +191,14 @@ namespace CivVSCiv
 
         private void Start()
         {
-            StartNewGame();
+            try
+            {
+                StartNewGame();
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[GameManager] StartNewGame failed: {e}");
+            }
         }
 
         // ----------------------------------------------------------------
@@ -208,10 +215,7 @@ namespace CivVSCiv
             // Randomiser le seed
             _gridData.Seed = System.DateTime.Now.GetHashCode();
 
-            // Générer la carte
-            Cells = HexGridGenerator.Generate(_gridData, _civCount);
-
-            // Initialiser les ressources des joueurs
+            // Initialiser les ressources des joueurs (avant la génération)
             PlayerGold = new int[_civCount];
             PlayerScience = new int[_civCount];
             PlayerCulture = new int[_civCount];
@@ -227,16 +231,12 @@ namespace CivVSCiv
                 _playerUnlocks[i] = new HashSet<string>();
             }
 
-            // Initialiser tous les managers
+            // Initialiser tous les managers AVANT la génération de la carte
+            // pour éviter qu'ils ne soient réinitialisés après le spawn des unités
             InitializeManagers();
 
-            // Publier l'événement de carte générée
-            EventBus.Publish(new GameEvents.MapGenerated
-            {
-                Cells = Cells,
-                Width = Width,
-                Height = Height
-            });
+            // Générer la carte (publie MapGenerated et CivStartPositions en interne)
+            Cells = HexGridGenerator.Generate(_gridData, _civCount);
 
             CurrentState = GameState.Playing;
         }

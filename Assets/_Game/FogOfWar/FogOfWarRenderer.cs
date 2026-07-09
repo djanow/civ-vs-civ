@@ -80,6 +80,16 @@ namespace CivVSCiv
 
         private void BuildFogOverlay(int width, int height)
         {
+            if (_gridRenderer == null)
+            {
+                _gridRenderer = FindAnyObjectByType<HexGridRenderer>();
+                if (_gridRenderer == null)
+                {
+                    Debug.LogError("[FogOfWarRenderer] Cannot build fog overlay: HexGridRenderer not found");
+                    return;
+                }
+            }
+
             if (_fogParent != null) Destroy(_fogParent);
             _fogParent = new GameObject("FogOverlay");
             _fogParent.transform.SetParent(transform);
@@ -101,11 +111,15 @@ namespace CivVSCiv
                     quad.transform.localScale = new Vector3(1.1f, 1.1f, 1f);
 
                     var mr = quad.GetComponent<MeshRenderer>();
+                    // All quads start with hidden material (black); visibility is updated
+                    // when units reveal areas via UpdateAllFogQuads()
                     mr.material = _hiddenMaterial;
 
                     _fogQuads[x, y] = quad;
                 }
             }
+
+            Debug.Log($"[FogOfWarRenderer] Built {width}x{height} fog overlay ({width * height} quads)");
         }
 
         public void UpdateAllFogQuads()

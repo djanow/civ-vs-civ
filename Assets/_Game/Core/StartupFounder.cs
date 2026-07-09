@@ -5,44 +5,90 @@ namespace CivVSCiv
 {
     /// <summary>
     /// Fonde automatiquement les villes de depart et rend les unites visibles.
+    /// Revele aussi le brouillard de guerre autour des positions de depart.
     /// </summary>
     public class StartupFounder : MonoBehaviour
     {
         private IEnumerator Start()
         {
-            yield return new WaitForSeconds(0.5f); // Laisser GameManager s'initialiser
+            // Attendre que tout soit initialise (GameManager, generateur, spawn des unites)
+            yield return new WaitForSeconds(1.5f);
 
-            var gm = GameManager.Instance;
-            if (gm == null) yield break;
-
-            // Attendre que la carte soit generee
-            while (gm.CurrentState != GameState.Playing) yield return null;
-            yield return null;
-
-            var cm = gm.CityManager;
-            var um = gm.UnitManager;
-            if (cm == null || um == null) yield break;
-
-            // Recuperer les positions de depart depuis le generateur
-            // (elles sont stockees via l'event CivStartPositions, mais on peut aussi les retrouver)
-            // Pour le MVP, on fonde une ville au premier emplacement de chaque joueur
-            var civs = new[] { "Tyr", "Athènes" };
-            for (int i = 0; i < 2 && i < civs.Length; i++)
+            try
             {
-                // Chercher un emplacement valide pres du centre gauche/droit
-                var startPos = FindStartPosition(gm, i);
-                if (startPos != null)
+                var gm = GameManager.Instance;
+                if (gm == null)
                 {
-                    var city = cm.AddCity(civs[i], i, startPos.Coordinates, true);
-                    if (city != null)
-                        Debug.Log($"[Startup] Ville fondee: {civs[i]} a {startPos.Coordinates} pour joueur {i}");
+                    Debug.LogError("[Startup] GameManager.Instance is null");
+                    yield break;
                 }
+
+                // Attendre que la carte soit generee
+                int safetyCounter = 0;
+                while (gm.CurrentState != GameState.Playing && safetyCounter < 100)
+                {
+                    yield return null;
+                    safetyCounter++;
+                }
+                if (gm.CurrentState != GameState.Playing)
+                {
+                    Debug.LogError("[Startup] Timeout waiting for GameState.Playing");
+                    yield break;
+                }
+
+                yield return null;
+
+                var cm = gm.CityManager;
+                var um = gm.UnitManager;
+                if (cm == null || um == null)
+                {
+                    Debug.LogError("[Startup] CityManager or UnitManager is null");
+                    yield break;
+                }
+
+                Debug.Log($"[Startup] Found {um.AllUnits.Count} units on map");
+
+                // Recuperer les positions de depart depuis le generateur
+                var civs = new[] { "Tyr", "Athènes" };
+                for (int i = 0; i < 2 && i < civs.Length; i++)
+                {
+                    // Chercher un emplacement valide pres du centre gauche/droit
+                    var startPos = FindStartPosition(gm, i);
+                    if (startPos != null)
+                    {
+                        var city = cm.AddCity(civs[i], i, startPos.Coordinates, true);
+                        if (city != null)
+                            Debug.Log($"[Startup] Ville fondee: {civs[i]} a {startPos.Coordinates} pour joueur {i}");
+                        else
+                            Debug.LogWarning($"[Startup] Impossible de fonder {civs[i]} a {startPos.Coordinates}");
+                    }
+                    else
+                    {
+                        Debug.LogError($"[Startup] Aucune position valide trouvee pour le joueur {i}");
+                    }
+                }
+
+                // Rendre les unites visibles (spheres de couleur)
+                MakeUnitsVisible(um);
+
+                // Reveler le brouillard de guerre autour des unites de chaque joueur
+                var fogRenderer = FindAnyObjectByType<FogOfWarRenderer>();
+                if (fogRenderer != null && um != null)
+                {
+                    for (int i = 0; i < 2; i++)
+                    {
+                        um.UpdatePlayerVisibility(i);
+                    }
+                    fogRenderer.UpdateAllFogQuads();
+                    Debug.Log("[Startup] Brouillard de guerre mis a jour pour les 2 joueurs");
+                }
+
+                Debug.Log("[Startup] Initialisation terminee. Pret a jouer !");
             }
-
-            // Rendre les unites visibles
-            MakeUnitsVisible(um);
-
-            Debug.Log("[Startup] Initialisation terminee. Pret a jouer !");
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[Startup] Initialization failed: {e}");
+            }
         }
 
         private HexCell FindStartPosition(GameManager gm, int playerIndex)

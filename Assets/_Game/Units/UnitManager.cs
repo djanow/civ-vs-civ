@@ -107,13 +107,31 @@ namespace CivVSCiv
         /// </summary>
         public void SpawnStartingUnits(HexCoordinates[] startPositions)
         {
+            if (startPositions == null || startPositions.Length == 0)
+            {
+                Debug.LogError("[UnitManager] SpawnStartingUnits: startPositions is null or empty");
+                return;
+            }
+
             for (int i = 0; i < startPositions.Length; i++)
             {
                 UnitData warriorData = CreateDefaultUnitData("Guerrier", UnitCategory.Infantry, 3, 3, 10, 2, 40);
                 UnitData scoutData = CreateDefaultUnitData("Eclaireur", UnitCategory.Recon, 2, 1, 8, 3, 30);
 
+                // Verifier que la position de depart est valide (terrain praticable)
+                HexCoordinates warriorPos = startPositions[i];
+                if (GameManager.Instance.IsCellInBounds(warriorPos))
+                {
+                    var cell = GameManager.Instance.GetCell(warriorPos);
+                    if (cell == null || cell.MovementCost <= 0)
+                    {
+                        Debug.LogWarning($"[UnitManager] Position de depart {warriorPos} invalide (cout={cell?.MovementCost}), recherche d'un voisin valide...");
+                        warriorPos = FindValidNeighbor(warriorPos);
+                    }
+                }
+
                 // Placer le guerrier sur la position de depart
-                SpawnUnit(warriorData, startPositions[i], i);
+                SpawnUnit(warriorData, warriorPos, i);
 
                 // Placer l'eclaireur sur un voisin ou sur la meme case
                 var neighbors = startPositions[i].GetNeighbors();
@@ -130,10 +148,37 @@ namespace CivVSCiv
                         }
                     }
                 }
+
+                // Si tous les voisins sont invalides, placer le scout sur la meme case que le guerrier
+                if (scoutPos == startPositions[i] && GameManager.Instance.IsCellInBounds(startPositions[i]))
+                {
+                    var cell = GameManager.Instance.GetCell(startPositions[i]);
+                    if (cell == null || cell.MovementCost <= 0)
+                        scoutPos = warriorPos; // fallback: a cote du guerrier
+                }
+
                 SpawnUnit(scoutData, scoutPos, i);
             }
 
             Debug.Log($"[UnitManager] Unites de depart creees pour {startPositions.Length} joueur(s).");
+        }
+
+        /// <summary>
+        /// Trouve un voisin valide (terrain praticable) pour une position donnee.
+        /// </summary>
+        private HexCoordinates FindValidNeighbor(HexCoordinates pos)
+        {
+            var neighbors = pos.GetNeighbors();
+            foreach (var n in neighbors)
+            {
+                if (GameManager.Instance.IsCellInBounds(n))
+                {
+                    var cell = GameManager.Instance.GetCell(n);
+                    if (cell != null && cell.MovementCost > 0)
+                        return n;
+                }
+            }
+            return pos; // fallback: garder la position d'origine
         }
 
         /// <summary>

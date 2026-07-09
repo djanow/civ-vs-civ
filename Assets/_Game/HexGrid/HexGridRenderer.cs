@@ -63,9 +63,42 @@ namespace CivVSCiv
             if (shader == null) shader = Shader.Find("Standard");
 
             _sharedMaterials = new Material[8];
+
+            // Generate procedural textures for each terrain type
+            var textures = new Texture2D[8];
+
+            // Wrap in try-catch so missing shaders don't crash everything
+            try
+            {
+                textures[0] = TerrainTextureGenerator.GenerateSea();
+                textures[1] = TerrainTextureGenerator.GenerateOcean();
+                textures[2] = TerrainTextureGenerator.GenerateMountain();
+                textures[3] = TerrainTextureGenerator.GenerateHill();
+                textures[4] = TerrainTextureGenerator.GenerateForest();
+                textures[5] = TerrainTextureGenerator.GeneratePlain();
+                textures[6] = TerrainTextureGenerator.GenerateDesert();
+                textures[7] = TerrainTextureGenerator.GenerateMarsh();
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[HexGridRenderer] Failed to generate textures: {e}");
+            }
+
             for (int i = 0; i < 8; i++)
             {
                 var mat = new Material(shader) { color = TileColors[i], name = $"TileMat_{i}" };
+
+                // Assign procedural texture if available; fall back to flat color
+                if (textures[i] != null)
+                {
+                    mat.mainTexture = textures[i];
+                    // URP / HDRP compatible texture property
+                    if (mat.HasProperty("_BaseMap"))
+                        mat.SetTexture("_BaseMap", textures[i]);
+                    if (mat.HasProperty("_BaseColorMap"))
+                        mat.SetTexture("_BaseColorMap", textures[i]);
+                }
+
                 _sharedMaterials[i] = mat;
             }
 
