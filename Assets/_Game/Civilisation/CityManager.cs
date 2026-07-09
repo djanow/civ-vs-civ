@@ -18,6 +18,43 @@ namespace CivVSCiv
     }
 
     /// <summary>
+    /// Instance de cite en jeu. Contient les donnees et les methodes
+    /// de production et calcul des yields.
+    /// </summary>
+    [System.Serializable]
+    public class City
+    {
+        public string CityName;
+        public int Population;
+        public string CurrentProduction;
+        public int CurrentProductionCost;
+        public int ProductionStored;
+
+        /// <summary>
+        /// Construit une instance a partir des donnees de base.
+        /// </summary>
+        public City(CityData data)
+        {
+            CityName = data.CityName;
+            Population = data.Population;
+            CurrentProduction = null;
+            CurrentProductionCost = 0;
+            ProductionStored = 0;
+        }
+
+        public int CalculateFoodYield(HexCell[,] cells) => Population * 2;
+
+        public int CalculateGoldYield(HexCell[,] cells) => Population;
+
+        public void StartProduction(string itemName, int cost)
+        {
+            CurrentProduction = itemName;
+            CurrentProductionCost = cost;
+            ProductionStored = 0;
+        }
+    }
+
+    /// <summary>
     /// Gere les cites de toutes les civilisations.
     /// </summary>
     public class CityManager : MonoBehaviour

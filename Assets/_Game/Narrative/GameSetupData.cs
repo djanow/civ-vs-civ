@@ -34,33 +34,4 @@ namespace CivVSCiv
         public string[] DefaultUnitNames; // "Warrior", "Scout"
     }
 
-    /// <summary>
-    /// Donnees minimales pour un batiment (placeholder).
-    /// </summary>
-    [System.Serializable]
-    public class BuildingData
-    {
-        public string BuildingName;
-        public string Description;
-        public int Cost;
-        public string Era;
-    }
-
-    /// <summary>
-    /// Donnees minimales pour l'arbre tech.
-    /// </summary>
-    [System.Serializable]
-    public class TechTreeData
-    {
-        public TechNodeData[] AllTechs;
-    }
-
-    [System.Serializable]
-    public class TechNodeData
-    {
-        public string TechName;
-        public int Era;
-        public int Cost;
-        public string[] Prerequisites;
-    }
 }
