@@ -126,9 +126,6 @@ namespace CivVSCiv
             // InputHandler (sélection et déplacement d'unités)
             FindOrCreate<InputHandler>("InputHandler");
 
-            {
-            }
-
             // Créer le MinimapWidget
             if (FindAnyObjectByType<MinimapWidget>() == null)
             {
