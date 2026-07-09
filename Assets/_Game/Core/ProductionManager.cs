@@ -21,7 +21,10 @@ namespace CivVSCiv
         {
             var result = new List<BuildingData>();
             var setup = GameManager.Instance?.SetupData;
-            if (setup?.BuildingDefinitions == null) return result;
+            if (setup?.BuildingDefinitions == null)
+            {
+                return GetDefaultBuildings(city);
+            }
 
             var research = GameManager.Instance?.ResearchManager;
             var civ = GameManager.Instance?.CivManager;
@@ -65,7 +68,10 @@ namespace CivVSCiv
         {
             var result = new List<UnitData>();
             var setup = GameManager.Instance?.SetupData;
-            if (setup?.UnitDefinitions == null) return result;
+            if (setup?.UnitDefinitions == null)
+            {
+                return GetDefaultUnits(city);
+            }
 
             var research = GameManager.Instance?.ResearchManager;
             var civ = GameManager.Instance?.CivManager;
@@ -209,30 +215,31 @@ namespace CivVSCiv
         private static int FindProductionCost(string itemName)
         {
             var setup = GameManager.Instance?.SetupData;
-            if (setup == null) return 30; // Coût par défaut
-
-            // Chercher dans les unités
-            if (setup.UnitDefinitions != null)
+            if (setup != null)
             {
-                foreach (var u in setup.UnitDefinitions)
+                // Chercher dans les unités
+                if (setup.UnitDefinitions != null)
                 {
-                    if (u != null && u.UnitName == itemName)
-                        return u.ProductionCost;
+                    foreach (var u in setup.UnitDefinitions)
+                    {
+                        if (u != null && u.UnitName == itemName)
+                            return u.ProductionCost;
+                    }
+                }
+
+                // Chercher dans les bâtiments
+                if (setup.BuildingDefinitions != null)
+                {
+                    foreach (var b in setup.BuildingDefinitions)
+                    {
+                        if (b != null && b.BuildingName == itemName)
+                            return b.ProductionCost;
+                    }
                 }
             }
 
-            // Chercher dans les bâtiments
-            if (setup.BuildingDefinitions != null)
-            {
-                foreach (var b in setup.BuildingDefinitions)
-                {
-                    if (b != null && b.BuildingName == itemName)
-                        return b.ProductionCost;
-                }
-            }
-
-            Debug.LogWarning($"[Production] Coût introuvable pour \"{itemName}\", utilisation du coût par défaut (30)");
-            return 30;
+            // Fallback : chercher dans les définitions par défaut
+            return GetDefaultCost(itemName);
         }
 
         /// <summary>
@@ -241,14 +248,16 @@ namespace CivVSCiv
         private static UnitData FindUnitDefinition(string itemName)
         {
             var setup = GameManager.Instance?.SetupData;
-            if (setup?.UnitDefinitions == null) return null;
-
-            foreach (var u in setup.UnitDefinitions)
+            if (setup?.UnitDefinitions != null)
             {
-                if (u != null && u.UnitName == itemName)
-                    return u;
+                foreach (var u in setup.UnitDefinitions)
+                {
+                    if (u != null && u.UnitName == itemName)
+                        return u;
+                }
             }
-            return null;
+            // Fallback : créé une définition par défaut
+            return CreateDefaultUnitForProduction(itemName, GetDefaultCost(itemName));
         }
 
         /// <summary>
@@ -312,6 +321,91 @@ namespace CivVSCiv
 
             // Fallback : retourner la position de la cité (stack)
             return cityPos;
+        }
+
+        // ----------------------------------------------------------------
+        // Définitions par défaut (quand GameSetupData est null)
+        // ----------------------------------------------------------------
+
+        /// <summary>
+        /// Retourne la liste des bâtiments par défaut.
+        /// </summary>
+        private static List<BuildingData> GetDefaultBuildings(City city)
+        {
+            var result = new List<BuildingData>();
+            string[] names = { "Caserne", "Temple", "Grenier" };
+            int[] costs = { 40, 50, 30 };
+            for (int i = 0; i < names.Length; i++)
+            {
+                if (city.CurrentProduction == names[i]) continue;
+                result.Add(CreateDefaultBuilding(names[i], costs[i]));
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Retourne la liste des unités par défaut.
+        /// </summary>
+        private static List<UnitData> GetDefaultUnits(City city)
+        {
+            var result = new List<UnitData>();
+            string[] names = { "Guerrier", "Colon", "Éclaireur" };
+            int[] costs = { 40, 80, 25 };
+            for (int i = 0; i < names.Length; i++)
+            {
+                if (city.CurrentProduction == names[i]) continue;
+                result.Add(CreateDefaultUnitForProduction(names[i], costs[i]));
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Crée un BuildingData par défaut pour un nom et un coût donnés.
+        /// </summary>
+        private static BuildingData CreateDefaultBuilding(string name, int cost)
+        {
+            var building = ScriptableObject.CreateInstance<BuildingData>();
+            building.BuildingName = name;
+            building.ProductionCost = cost;
+            building.RequiredTechId = -1;
+            building.IsUnique = false;
+            return building;
+        }
+
+        /// <summary>
+        /// Crée un UnitData par défaut pour un nom et un coût donnés.
+        /// </summary>
+        private static UnitData CreateDefaultUnitForProduction(string name, int cost)
+        {
+            var unit = ScriptableObject.CreateInstance<UnitData>();
+            unit.UnitName = name;
+            unit.ProductionCost = cost;
+            unit.RequiredTechId = -1;
+            unit.IsUnique = false;
+            unit.CivilizationId = -1;
+            unit.Category = name == "Colon" ? UnitCategory.Civil : UnitCategory.Infantry;
+            unit.BaseAttack = name == "Guerrier" ? 3 : (name == "Éclaireur" ? 2 : 1);
+            unit.BaseDefense = name == "Guerrier" ? 3 : (name == "Éclaireur" ? 1 : 1);
+            unit.MaxHealth = 10;
+            unit.MovementRange = 2;
+            return unit;
+        }
+
+        /// <summary>
+        /// Retourne le coût par défaut d'un objet connu.
+        /// </summary>
+        private static int GetDefaultCost(string itemName)
+        {
+            switch (itemName)
+            {
+                case "Caserne":   return 40;
+                case "Temple":    return 50;
+                case "Grenier":   return 30;
+                case "Guerrier":  return 40;
+                case "Colon":     return 80;
+                case "Éclaireur": return 25;
+                default:          return 30;
+            }
         }
     }
 }

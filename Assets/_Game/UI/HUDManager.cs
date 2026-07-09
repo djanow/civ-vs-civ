@@ -22,6 +22,10 @@ namespace CivVSCiv
         private Button _nextBtn;
         private Text _nextLabel;
 
+        // Action bar button (contextual, e.g. "Found City")
+        private Button _actionBarBtn;
+        private Text _actionBarLabel;
+
         // Start screen
         private GameObject _startScreen;
         private bool _gameStarted;
@@ -231,6 +235,65 @@ namespace CivVSCiv
         }
 
         private void HidePhaseText() { if (_phaseText != null) _phaseText.gameObject.SetActive(false); }
+
+        // ----------------------------------------------------------------
+        // Action bar (contextual button, e.g. "Found City")
+        // ----------------------------------------------------------------
+
+        /// <summary>
+        /// Affiche un bouton contextuel au centre de l'ecran avec le texte donne.
+        /// </summary>
+        public void ShowActionBar(string text, UnityEngine.Events.UnityAction action)
+        {
+            if (_actionBarBtn == null)
+                CreateActionBarButton();
+
+            _actionBarLabel.text = text;
+            _actionBarBtn.gameObject.SetActive(true);
+            _actionBarBtn.onClick.RemoveAllListeners();
+            _actionBarBtn.onClick.AddListener(action);
+        }
+
+        /// <summary>
+        /// Masque le bouton contextuel.
+        /// </summary>
+        public void HideActionBar()
+        {
+            if (_actionBarBtn != null)
+                _actionBarBtn.gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// Cree le bouton d'action contextuel (cache par defaut).
+        /// </summary>
+        private void CreateActionBarButton()
+        {
+            var canvas = FindAnyObjectByType<Canvas>();
+            if (canvas == null) return;
+
+            var btnGo = new GameObject("ActionBarBtn", typeof(Image), typeof(Button));
+            btnGo.transform.SetParent(canvas.transform, false);
+            var btnRT = btnGo.GetComponent<RectTransform>();
+            btnRT.anchorMin = new Vector2(0.35f, 0.12f);
+            btnRT.anchorMax = new Vector2(0.65f, 0.22f);
+            btnRT.offsetMin = btnRT.offsetMax = Vector2.zero;
+            btnGo.GetComponent<Image>().color = new Color(0.2f, 0.5f, 0.7f);
+
+            _actionBarLabel = new GameObject("ActionLabel", typeof(Text));
+            _actionBarLabel.transform.SetParent(btnGo.transform, false);
+            var lblRT = _actionBarLabel.GetComponent<RectTransform>();
+            lblRT.anchorMin = Vector2.zero; lblRT.anchorMax = Vector2.one;
+            lblRT.offsetMin = lblRT.offsetMax = Vector2.zero;
+            _actionBarLabel.text = "";
+            _actionBarLabel.fontSize = 24;
+            _actionBarLabel.color = Color.white;
+            _actionBarLabel.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _actionBarLabel.alignment = TextAnchor.MiddleCenter;
+            _actionBarLabel.raycastTarget = false;
+
+            _actionBarBtn = btnGo.GetComponent<Button>();
+            _actionBarBtn.gameObject.SetActive(false);
+        }
 
         private void OnTurnStarted(GameEvents.PlayerTurnStarted evt)
         {

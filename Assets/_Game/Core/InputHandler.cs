@@ -187,6 +187,13 @@ namespace CivVSCiv
             // Audio feedback for selection
             GameManager.Instance?.AudioManager?.PlayUIClick();
 
+            // Afficher le bouton "Fonder une ville" si c'est un Colon
+            if (unit.UnitName.ToLower().Contains("colon"))
+            {
+                var hud = FindAnyObjectByType<HUDManager>();
+                hud?.ShowActionBar("Fonder une ville", () => FoundCity(unit));
+            }
+
             Debug.Log($"[Input] Unité sélectionnée : {unit.UnitName} (propriétaire {unit.OwnerIndex})");
         }
 
@@ -465,5 +472,37 @@ namespace CivVSCiv
         /// Retourne l'unité actuellement sélectionnée (pour autres scripts).
         /// </summary>
         public Unit GetSelectedUnit() => _selectedUnit;
+
+        // ----------------------------------------------------------------
+        // Fondation de cité
+        // ----------------------------------------------------------------
+
+        /// <summary>
+        /// Fonde une nouvelle cité à la position du Colon sélectionné,
+        /// puis détruit le Colon et nettoie la sélection.
+        /// </summary>
+        private void FoundCity(Unit unit)
+        {
+            if (unit == null) return;
+
+            var cm = GameManager.Instance?.CityManager;
+            if (cm == null) return;
+
+            int owner = unit.OwnerIndex;
+            string cityName = "Tyr";
+
+            cm.AddCity(cityName, owner, unit.Position, false);
+            _unitManager.DestroyUnit(unit);
+            DeselectUnit();
+
+            // Mettre à jour le brouillard de guerre
+            UpdateFogAfterMovement();
+
+            // Masquer le bouton d'action
+            var hud = FindAnyObjectByType<HUDManager>();
+            hud?.HideActionBar();
+
+            Debug.Log($"[Input] Cité fondée : {cityName} à {unit.Position}");
+        }
     }
 }

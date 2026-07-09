@@ -19,71 +19,9 @@ namespace CivVSCiv
         private void Awake()
         {
             _mainCamera = Camera.main;
+            _visible = false;
 
-            var canvas = FindAnyObjectByType<Canvas>();
-            if (canvas == null) return;
-
-            // Toggle button (small circle/icon, always visible)
-            var btnGo = new GameObject("MinimapToggle", typeof(Image), typeof(Button));
-            btnGo.transform.SetParent(canvas.transform, false);
-            var btnRT = btnGo.GetComponent<RectTransform>();
-            btnRT.anchorMin = btnRT.anchorMax = new Vector2(0, 0);
-            btnRT.pivot = new Vector2(0, 0);
-            btnRT.anchoredPosition = new Vector2(8, 8);
-            btnRT.sizeDelta = new Vector2(32, 32);
-            btnGo.GetComponent<Image>().color = new Color(0.2f, 0.2f, 0.3f, 0.8f);
-            _toggleBtn = btnGo.GetComponent<Button>();
-            _toggleBtn.onClick.AddListener(ToggleMinimap);
-
-            // Label on toggle
-            var lbl = new GameObject("Label", typeof(Text));
-            lbl.transform.SetParent(btnGo.transform, false);
-            var txt = lbl.GetComponent<Text>();
-            txt.text = "🗺";
-            txt.fontSize = 20;
-            txt.alignment = TextAnchor.MiddleCenter;
-            txt.color = Color.white;
-            txt.raycastTarget = false;
-            txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            var lblRT = lbl.GetComponent<RectTransform>();
-            lblRT.anchorMin = lblRT.anchorMax = Vector2.zero;
-            lblRT.offsetMin = lblRT.offsetMax = Vector2.zero;
-            lblRT.sizeDelta = new Vector2(32, 32);
-
-            // Minimap container (hidden by default until MapGenerated)
-            _minimapGO = new GameObject("MinimapContainer");
-            _minimapGO.transform.SetParent(canvas.transform, false);
-            _minimapGO.SetActive(false);
-
-            var bg = _minimapGO.AddComponent<Image>();
-            bg.color = new Color(0.05f, 0.05f, 0.1f, 0.9f);
-            var bgRT = _minimapGO.GetComponent<RectTransform>();
-            bgRT.anchorMin = bgRT.anchorMax = new Vector2(0, 0);
-            bgRT.pivot = new Vector2(0, 0);
-            bgRT.anchoredPosition = new Vector2(8, 44);
-            bgRT.sizeDelta = new Vector2(188, 148);
-
-            // Minimap RawImage
-            var mm = new GameObject("Minimap", typeof(RawImage));
-            mm.transform.SetParent(_minimapGO.transform, false);
-            _minimapImage = mm.GetComponent<RawImage>();
-            var mmRT = _minimapImage.GetComponent<RectTransform>();
-            mmRT.anchorMin = mmRT.anchorMax = Vector2.zero;
-            mmRT.offsetMin = new Vector2(4, 4);
-            mmRT.offsetMax = new Vector2(0, 0);
-            mmRT.sizeDelta = new Vector2(180, 140);
-
-            // Viewport
-            var vp = new GameObject("ViewportRect", typeof(Image));
-            vp.transform.SetParent(_minimapGO.transform, false);
-            vp.GetComponent<Image>().color = new Color(1, 1, 1, 0.25f);
-            _viewportRect = vp.GetComponent<RectTransform>();
-            _viewportRect.anchorMin = _viewportRect.anchorMax = Vector2.zero;
-            _viewportRect.offsetMin = new Vector2(4, 4);
-            _viewportRect.offsetMax = new Vector2(0, 0);
-            _viewportRect.sizeDelta = new Vector2(180, 140);
-
-            SetupMinimapCamera();
+            // Minimap desactivee : ne pas creer les elements UI
             EventBus.Subscribe<GameEvents.MapGenerated>(OnMapGenerated);
         }
 
@@ -119,6 +57,7 @@ namespace CivVSCiv
         private void OnMapGenerated(GameEvents.MapGenerated evt)
         {
             if (_minimapGO != null) _minimapGO.SetActive(_visible);
+            if (_minimapCamera == null) return;
             float w = evt.Width * 1.5f, h = evt.Height * Mathf.Sqrt(3f);
             _minimapCamera.transform.position = new Vector3(w / 2f, 100f, h / 2f);
             _minimapCamera.orthographicSize = Mathf.Max(w, h) / 2f;
