@@ -21,25 +21,29 @@ namespace CivVSCiv
             _targetZoom = _cam.orthographic ? _cam.orthographicSize : 20f;
         }
 
+        private Vector3 _lastMouse;
+
         void Update()
         {
-            // Right-click drag: pan
-            if (Input.GetMouseButton(1))
-            {
-                Vector3 delta = _cam.ScreenToWorldPoint(new Vector3(
-                    Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"), _cam.transform.position.y))
-                    - _cam.ScreenToWorldPoint(Vector3.zero);
-                _targetPos -= delta * _panSpeed;
-            }
-
-            // Scroll: zoom
-            _targetZoom -= Input.GetAxis("Mouse ScrollWheel") * _zoomSpeed;
+            // Zoom
+            float scroll = Input.GetAxis("Mouse ScrollWheel");
+            _targetZoom -= scroll * _zoomSpeed;
             _targetZoom = Mathf.Clamp(_targetZoom, _minZoom, _maxZoom);
 
-            // Smooth
-            transform.position = Vector3.Lerp(transform.position, _targetPos, Time.deltaTime * _damping);
-            if (_cam.orthographic)
-                _cam.orthographicSize = Mathf.Lerp(_cam.orthographicSize, _targetZoom, Time.deltaTime * _damping);
+            // Right-click drag: pan
+            if (Input.GetMouseButtonDown(1))
+                _lastMouse = Input.mousePosition;
+            else if (Input.GetMouseButton(1))
+            {
+                Vector3 worldDelta = Input.mousePosition - _lastMouse;
+                _lastMouse = Input.mousePosition;
+                float scale = _targetZoom * 2f / Screen.height;
+                _targetPos -= new Vector3(worldDelta.x * scale, 0, worldDelta.y * scale);
+            }
+
+            // Apply
+            transform.position = _targetPos;
+            _cam.orthographicSize = _targetZoom;
         }
 
         public void FocusOn(Vector3 pos) { _targetPos = pos; }
