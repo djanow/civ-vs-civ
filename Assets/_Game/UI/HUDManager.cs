@@ -246,7 +246,7 @@ namespace CivVSCiv
             if (inputHandler != null)
                 inputHandler.EnsureCityPanel();
 
-            var cityPanel = FindAnyObjectByType<CityPanel>(true);
+            var cityPanel = FindAnyObjectByType<CityPanel>(FindObjectsInactive.Include);
             if (cityPanel != null)
                 cityPanel.Show(city);
         }
