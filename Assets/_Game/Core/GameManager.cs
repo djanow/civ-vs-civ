@@ -121,6 +121,9 @@ namespace CivVSCiv
                 _gridRenderer = hgGo.AddComponent<HexGridRenderer>();
             }
 
+            // InputHandler (sélection et déplacement d'unités)
+            FindOrCreate<InputHandler>("InputHandler");
+
             // FogOfWar (pairé avec le renderer)
             if (FindAnyObjectByType<FogOfWarRenderer>() == null)
             {

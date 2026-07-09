@@ -159,9 +159,13 @@ namespace CivVSCiv
 
         /// <summary>
         /// Traite la fin de tour complète d'un joueur.
+        /// Inclut le traitement de la production des cités.
         /// </summary>
         private IEnumerator ProcessEndOfTurn()
         {
+            // Traiter la production des cités du joueur courant
+            ProcessCityProduction();
+
             EventBus.Publish(new GameEvents.TurnEnded
             {
                 TurnNumber = CurrentTurn,
@@ -169,6 +173,34 @@ namespace CivVSCiv
             });
 
             yield return null;
+        }
+
+        /// <summary>
+        /// Traite la production tour-par-tour pour toutes les cités
+        /// du joueur courant.
+        /// </summary>
+        private void ProcessCityProduction()
+        {
+            var cityManager = GameManager.Instance?.CityManager;
+            if (cityManager == null) return;
+
+            var runtimeCities = cityManager.GetRuntimeCities();
+            var cells = GameManager.Instance?.Cells;
+            if (cells == null) return;
+
+            foreach (var city in runtimeCities)
+            {
+                // Vérifier que la cité appartient au joueur courant
+                var cityData = cityManager.GetAllCities().Find(c => c.CityName == city.CityName);
+                if (cityData == null || cityData.OwnerIndex != CurrentPlayerIndex)
+                    continue;
+
+                // Traiter la production si quelque chose est en construction
+                if (!string.IsNullOrEmpty(city.CurrentProduction))
+                {
+                    ProductionManager.ProcessCityProduction(city, cells);
+                }
+            }
         }
 
         /// <summary>

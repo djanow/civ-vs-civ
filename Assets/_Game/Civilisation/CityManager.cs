@@ -4,7 +4,7 @@ using UnityEngine;
 namespace CivVSCiv
 {
     /// <summary>
-    /// Donnees d'une cite.
+    /// Données d'une cité.
     /// </summary>
     [System.Serializable]
     public class CityData
@@ -18,7 +18,7 @@ namespace CivVSCiv
     }
 
     /// <summary>
-    /// Instance de cite en jeu. Contient les donnees et les methodes
+    /// Instance de cité en jeu. Contient les données et les méthodes
     /// de production et calcul des yields.
     /// </summary>
     [System.Serializable]
@@ -31,7 +31,7 @@ namespace CivVSCiv
         public int ProductionStored;
 
         /// <summary>
-        /// Construit une instance a partir des donnees de base.
+        /// Construit une instance à partir des données de base.
         /// </summary>
         public City(CityData data)
         {
@@ -55,20 +55,81 @@ namespace CivVSCiv
     }
 
     /// <summary>
-    /// Gere les cites de toutes les civilisations.
+    /// Gère les cités de toutes les civilisations.
+    /// Crée les GameObjects visibles sur la carte.
     /// </summary>
     public class CityManager : MonoBehaviour
     {
+        [Header("Visuel des cités sur la carte")]
+        [SerializeField] private float _cityMarkerHeight = 0.6f;
+        [SerializeField] private float _cityMarkerRadius = 0.35f;
+
         private List<CityData> _allCities = new List<CityData>();
+        private readonly List<City> _runtimeCities = new List<City>();
+        private readonly Dictionary<HexCoordinates, GameObject> _cityGameObjects = new Dictionary<HexCoordinates, GameObject>();
+
+        private HexGridRenderer _gridRenderer;
+
+        // Couleurs par propriétaire
+        private static readonly Color[] OwnerColors =
+        {
+            new Color(0.6f, 0.2f, 0.8f),  // 0: Violet (Phénicie)
+            new Color(0.2f, 0.5f, 0.9f),  // 1: Bleu (Grèce)
+            new Color(0.8f, 0.3f, 0.2f),  // 2: Rouge
+            new Color(0.2f, 0.8f, 0.3f),  // 3: Vert
+        };
+
+        private void Awake()
+        {
+            _gridRenderer = FindAnyObjectByType<HexGridRenderer>();
+        }
 
         /// <summary>Initialise le gestionnaire.</summary>
         public void Initialize()
         {
             _allCities.Clear();
+            _runtimeCities.Clear();
+
+            // Nettoyer les GameObjects de cités
+            foreach (var kvp in _cityGameObjects)
+            {
+                if (kvp.Value != null) Destroy(kvp.Value);
+            }
+            _cityGameObjects.Clear();
         }
 
-        /// <summary>Toutes les cites.</summary>
+        /// <summary>Toutes les cités (données persistantes).</summary>
         public List<CityData> GetAllCities() => _allCities;
+
+        /// <summary>Toutes les cités (instances runtime avec production).</summary>
+        public List<City> GetRuntimeCities() => _runtimeCities;
+
+        /// <summary>
+        /// Trouve l'instance runtime d'une cité à une position donnée.
+        /// </summary>
+        public City GetRuntimeCityAt(HexCoordinates location)
+        {
+            foreach (var city in _runtimeCities)
+            {
+                var cityData = FindCityData(city.CityName);
+                if (cityData != null && cityData.Location == location)
+                    return city;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Trouve l'instance runtime d'une cité par son nom.
+        /// </summary>
+        public City GetRuntimeCity(string cityName)
+        {
+            foreach (var city in _runtimeCities)
+            {
+                if (city.CityName == cityName)
+                    return city;
+            }
+            return null;
+        }
 
         /// <summary>Cites d'un joueur.</summary>
         public List<CityData> GetPlayerCities(int playerIndex)
@@ -76,10 +137,13 @@ namespace CivVSCiv
             return _allCities.FindAll(c => c.OwnerIndex == playerIndex);
         }
 
-        /// <summary>Ajoute une cite.</summary>
+        /// <summary>
+        /// Ajoute une cité.
+        /// Crée également un GameObject visible sur la carte.
+        /// </summary>
         public CityData AddCity(string name, int owner, HexCoordinates location, bool isCapital)
         {
-            var city = new CityData
+            var cityData = new CityData
             {
                 CityId = _allCities.Count,
                 CityName = name,
@@ -88,11 +152,123 @@ namespace CivVSCiv
                 Population = 1,
                 IsCapital = isCapital
             };
-            _allCities.Add(city);
-            return city;
+            _allCities.Add(cityData);
+
+            // Créer l'instance runtime
+            var runtimeCity = new City(cityData);
+            _runtimeCities.Add(runtimeCity);
+
+            // Créer le GameObject visible sur la carte
+            CreateCityGameObject(cityData);
+
+            Debug.Log($"[CityManager] Cité fondée : {name} à {location} (joueur {owner})");
+            return cityData;
         }
 
-        /// <summary>Ajoute de la population a une cite par index.</summary>
+        /// <summary>
+        /// Crée un marqueur 3D visible pour une cité sur la carte hexagonale.
+        /// </summary>
+        private void CreateCityGameObject(CityData city)
+        {
+            if (_gridRenderer == null)
+                _gridRenderer = FindAnyObjectByType<HexGridRenderer>();
+
+            Vector3 worldPos = _gridRenderer != null
+                ? _gridRenderer.HexToWorld(city.Location)
+                : Vector3.zero;
+
+            // Créer un marqueur cylindrique (colonne) pour la cité
+            var marker = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            marker.name = $"City_{city.CityName}";
+
+            // Taille : plus haut pour les capitales
+            float height = city.IsCapital ? _cityMarkerHeight * 1.5f : _cityMarkerHeight;
+            marker.transform.localScale = new Vector3(_cityMarkerRadius, height, _cityMarkerRadius);
+            marker.transform.position = new Vector3(worldPos.x, height, worldPos.z);
+
+            // Couleur par propriétaire
+            var mr = marker.GetComponent<MeshRenderer>();
+            var mat = new Material(Shader.Find("Standard"));
+            Color cityColor = city.OwnerIndex >= 0 && city.OwnerIndex < OwnerColors.Length
+                ? OwnerColors[city.OwnerIndex]
+                : new Color(0.5f, 0.5f, 0.5f);
+
+            // Capitales en couleur pleine, autres légèrement transparentes
+            if (city.IsCapital)
+            {
+                mat.color = cityColor;
+            }
+            else
+            {
+                mat.color = new Color(cityColor.r * 0.8f, cityColor.g * 0.8f, cityColor.b * 0.8f);
+            }
+            mr.sharedMaterial = mat;
+
+            // Ajouter un anneau à la base pour les capitales
+            if (city.IsCapital)
+            {
+                var ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                ring.name = $"CityRing_{city.CityName}";
+                ring.transform.SetParent(marker.transform);
+                ring.transform.localPosition = Vector3.zero;
+                ring.transform.localScale = new Vector3(1.8f, 0.1f, 1.8f);
+
+                var ringMr = ring.GetComponent<MeshRenderer>();
+                var ringMat = new Material(Shader.Find("Standard"));
+                ringMat.color = new Color(cityColor.r, cityColor.g, cityColor.b, 0.3f);
+                ringMat.SetFloat("_Mode", 3);
+                ringMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                ringMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                ringMat.SetInt("_ZWrite", 0);
+                ringMat.renderQueue = 3000;
+                ringMr.sharedMaterial = ringMat;
+
+                Destroy(ring.GetComponent<Collider>());
+            }
+
+            // Supprimer le collider pour ne pas bloquer les clics sur le sol
+            // (les clics sont gérés par raycast sur le plan y=0)
+            Destroy(marker.GetComponent<Collider>());
+
+            _cityGameObjects[city.Location] = marker;
+
+            // Publier l'événement
+            EventBus.Publish(new GameEvents.CityFounded
+            {
+                Location = city.Location,
+                OwnerIndex = city.OwnerIndex,
+                CityName = city.CityName
+            });
+        }
+
+        /// <summary>
+        /// Supprime le GameObject visible d'une cité.
+        /// </summary>
+        public void RemoveCityGameObject(HexCoordinates location)
+        {
+            if (_cityGameObjects.TryGetValue(location, out var go))
+            {
+                Destroy(go);
+                _cityGameObjects.Remove(location);
+            }
+        }
+
+        /// <summary>
+        /// Met à jour la couleur du marqueur de cité (ex: après un changement de propriétaire).
+        /// </summary>
+        public void UpdateCityColor(HexCoordinates location, int newOwner)
+        {
+            if (_cityGameObjects.TryGetValue(location, out var go))
+            {
+                var mr = go.GetComponent<MeshRenderer>();
+                if (mr != null && newOwner >= 0 && newOwner < OwnerColors.Length)
+                {
+                    mr.sharedMaterial.color = OwnerColors[newOwner];
+                }
+            }
+        }
+
+        /// <summary>Ajoute de la population à une cité par index.</summary>
         public void AddPopulation(int playerIndex, int cityIndex, int delta)
         {
             var cities = GetPlayerCities(playerIndex);
@@ -102,7 +278,7 @@ namespace CivVSCiv
             }
         }
 
-        /// <summary>Ajoute de la population a une cite par nom.</summary>
+        /// <summary>Ajoute de la population à une cité par nom.</summary>
         public void AddPopulation(int playerIndex, string cityName, int delta)
         {
             var cities = GetPlayerCities(playerIndex);
@@ -116,7 +292,7 @@ namespace CivVSCiv
             }
         }
 
-        /// <summary>Ajoute de la population a la capitale.</summary>
+        /// <summary>Ajoute de la population à la capitale.</summary>
         public void AddPopulationToCapital(int playerIndex, int delta)
         {
             var cities = GetPlayerCities(playerIndex);
@@ -130,7 +306,7 @@ namespace CivVSCiv
             }
         }
 
-        /// <summary>Verifie si le joueur a une ville cotiere.</summary>
+        /// <summary>Vérifie si le joueur a une ville côtière.</summary>
         public bool HasCoastalCity(int playerIndex)
         {
             var cities = GetPlayerCities(playerIndex);
@@ -148,7 +324,7 @@ namespace CivVSCiv
                 if (cells[x, y] != null && cells[x, y].TileType == TileType.Sea)
                     return true;
 
-                // Verifier les voisins pour la cote
+                // Vérifier les voisins pour la côte
                 var neighbors = city.Location.GetNeighbors();
                 foreach (var n in neighbors)
                 {
@@ -162,6 +338,19 @@ namespace CivVSCiv
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Trouve les données persistantes d'une cité par son nom.
+        /// </summary>
+        private CityData FindCityData(string cityName)
+        {
+            foreach (var c in _allCities)
+            {
+                if (c.CityName == cityName)
+                    return c;
+            }
+            return null;
         }
     }
 }
