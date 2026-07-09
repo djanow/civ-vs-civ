@@ -37,7 +37,7 @@ namespace CivVSCiv
             Debug.Log("[AutoBootstrap] Camera set: ortho, pos=" + cam.transform.position);
 
             // Light
-            if (FindAnyObjectByType<Light>() == null)
+            if (Object.FindAnyObjectByType<Light>() == null)
             {
                 var lg = new GameObject("Directional Light");
                 var l = lg.AddComponent<Light>();
