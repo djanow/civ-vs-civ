@@ -473,7 +473,7 @@ namespace CivVSCiv
             float allianceRoll = Random.value;
 
             float warThreshold = AIPersonalityManager.GetWarThreshold(personality,
-                EvaluatePowerRatio(aiPlayer, target));
+                (int)EvaluatePowerRatio(aiPlayer, target));
 
             if (warRoll < warThreshold && relations < 0)
             {

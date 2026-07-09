@@ -65,7 +65,7 @@ namespace CivVSCiv
             string legacy = civManager.AdvanceEra(playerIndex);
             if (!string.IsNullOrEmpty(legacy))
             {
-                AddLegacy(playerIndex, legacy);
+                ApplyLegacy(playerIndex, legacy);
                 Debug.Log($"[InterludeManager] Legacy obtenu pour joueur {playerIndex} : {legacy}");
             }
 

@@ -55,9 +55,9 @@ namespace CivVSCiv
             // Plus l'IA est puissante relativement, plus elle est agressive
             float powerModifier = powerRatio switch
             {
-                > 2f => 0.25f,     // Massivement plus puissant
-                > 1.5f => 0.15f,   // Plus puissant
-                > 0.8f => 0.0f,    // Équilibré
+                > 2 => 0.25f,      // Massivement plus puissant
+                > 1 => 0.15f,      // Plus puissant
+                > 0 => 0.0f,       // Équilibré
                 _ => -0.10f         // Plus faible
             };
 

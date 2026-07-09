@@ -19,6 +19,15 @@ namespace CivVSCiv
 
         public List<Unit> AllUnits { get; private set; } = new();
 
+        /// <summary>
+        /// Initialise le gestionnaire d'unites pour le nombre de civilisations donne.
+        /// </summary>
+        public void Initialize(int civCount)
+        {
+            AllUnits.Clear();
+            Debug.Log($"[UnitManager] Initialize for {civCount} players.");
+        }
+
         private void Awake()
         {
             _gridRenderer = FindAnyObjectByType<HexGridRenderer>();

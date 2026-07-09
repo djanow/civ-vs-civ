@@ -3,6 +3,7 @@ using UnityEngine.UI;
 
 namespace CivVSCiv
 {
+#pragma warning disable CS0414
     /// <summary>
     /// Ecran narratif plein ecran pour les interludes d'ere et les moments cles.
     /// Affiche le titre, la description narrative, et 2-3 choix avec apercu des effets.

@@ -6,6 +6,7 @@ namespace CivVSCiv
     /// Coordonnées hexagonales cubiques (q, r, s) avec q + r + s = 0.
     /// Implémentation basée sur le guide redblobgames.
     /// </summary>
+    [System.Serializable]
     public struct HexCoordinates : IEquatable<HexCoordinates>
     {
         public int Q { get; }
