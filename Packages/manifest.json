@@ -1,7 +1,6 @@
 {
   "dependencies": {
     "com.unity.render-pipelines.universal": "17.0.3",
-    "com.unity.inputsystem": "",
     "com.unity.test-framework": "1.4.6"
   }
 }

@@ -1,176 +1,57 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace CivVSCiv
 {
-    /// <summary>
-    /// Controle de camera pour mobile et desktop :
-    /// - 1 doigt : pan (drag)
-    /// - 2 doigts : pinch-to-zoom
-    /// - Desktop : clic droit drag (pan), molette (zoom)
-    /// </summary>
     public class CameraController : MonoBehaviour
     {
-        [Header("Zoom")]
-        [SerializeField] private float _minZoom = 3f;
-        [SerializeField] private float _maxZoom = 20f;
-        [SerializeField] private float _zoomSpeed = 0.01f;
-        [SerializeField] private float _zoomDamping = 5f;
-        [SerializeField] private float _defaultZoom = 10f;
-
-        [Header("Pan")]
-        [SerializeField] private float _panSpeed = 1f;
-        [SerializeField] private float _panDamping = 8f;
-
-        [Header("Bounds")]
-        [SerializeField] private float _mapWidth = 60f;
-        [SerializeField] private float _mapHeight = 50f;
-        [SerializeField] private float _boundsPadding = 2f;
+        [SerializeField] private float _minZoom = 3f, _maxZoom = 20f, _zoomSpeed = 0.01f, _zoomDamping = 5f, _defaultZoom = 10f;
+        [SerializeField] private float _panSpeed = 1f, _panDamping = 8f;
+        [SerializeField] private float _mapWidth = 60f, _mapHeight = 50f, _boundsPadding = 2f;
 
         private Camera _cam;
-        private Vector3 _targetPosition;
+        private Vector3 _targetPos;
         private float _targetZoom;
         private Vector3 _dragOrigin;
-        private bool _isDragging;
-
-        // Pinch
-        private float _previousPinchDistance;
+        private bool _dragging;
+        private float _prevPinch;
 
         private void Awake()
         {
-            _cam = GetComponent<Camera>();
-            if (_cam == null) _cam = Camera.main;
-
-            _targetZoom = _defaultZoom;
-            _cam.orthographicSize = _defaultZoom;
-
-            // Position initiale : centree sur la carte
-            _targetPosition = new Vector3(_mapWidth / 2f, transform.position.y, _mapHeight / 2f);
-            transform.position = _targetPosition;
+            _cam = GetComponent<Camera>() ?? Camera.main;
+            _targetZoom = _defaultZoom; _cam.orthographicSize = _defaultZoom;
+            _targetPos = new Vector3(_mapWidth / 2f, transform.position.y, _mapHeight / 2f);
+            transform.position = _targetPos;
         }
+        private void Update() { Touch(); Desktop(); Smooth(); }
 
-        private void Update()
+        private void Touch()
         {
-            HandleTouchInput();
-            HandleDesktopInput();
-            ApplySmoothing();
-        }
-
-        private void HandleTouchInput()
-        {
-            if (Touchscreen.current == null) return;
-
-            var touches = Touchscreen.current.touches;
-
-            if (touches.Count == 1)
+            if (Input.touchCount == 0) return;
+            if (Input.touchCount == 1)
             {
-                // Pan a 1 doigt
-                var touch = touches[0];
-                if (touch.press.wasPressedThisFrame)
-                {
-                    _dragOrigin = GetWorldPoint(touch.position.ReadValue());
-                    _isDragging = true;
-                }
-                else if (_isDragging && touch.press.isPressed)
-                {
-                    Vector3 currentWorld = GetWorldPoint(touch.position.ReadValue());
-                    Vector3 delta = _dragOrigin - currentWorld;
-                    _targetPosition += delta * _panSpeed;
-                    ClampPosition();
-                }
-                else
-                {
-                    _isDragging = false;
-                }
+                var t = Input.GetTouch(0);
+                if (t.phase == TouchPhase.Began) { _dragOrigin = W(t.position); _dragging = true; }
+                else if (_dragging && (t.phase == TouchPhase.Moved || t.phase == TouchPhase.Stationary))
+                { _targetPos += (_dragOrigin - W(t.position)) * _panSpeed; Clip(); }
+                else if (t.phase >= TouchPhase.Ended) _dragging = false;
             }
-            else if (touches.Count == 2)
-            {
-                _isDragging = false;
-
-                // Pinch to zoom
-                var t0 = touches[0].position.ReadValue();
-                var t1 = touches[1].position.ReadValue();
-                float currentDistance = Vector2.Distance(t0, t1);
-
-                if (touches[0].press.wasPressedThisFrame ||
-                    touches[1].press.wasPressedThisFrame)
-                {
-                    _previousPinchDistance = currentDistance;
-                }
-                else
-                {
-                    float delta = _previousPinchDistance - currentDistance;
-                    _targetZoom += delta * _zoomSpeed;
-                    _targetZoom = Mathf.Clamp(_targetZoom, _minZoom, _maxZoom);
-                    _previousPinchDistance = currentDistance;
-                }
+            else { _dragging = false; var a = Input.GetTouch(0); var b = Input.GetTouch(1);
+                if (a.phase == TouchPhase.Began || b.phase == TouchPhase.Began) _prevPinch = Vector2.Distance(a.position,b.position);
+                else if (a.phase == TouchPhase.Moved || b.phase == TouchPhase.Moved)
+                { float d = Vector2.Distance(a.position,b.position); _targetZoom += (_prevPinch - d) * _zoomSpeed; _targetZoom = Mathf.Clamp(_targetZoom, _minZoom, _maxZoom); _prevPinch = d; }
             }
         }
 
-        private void HandleDesktopInput()
+        private void Desktop()
         {
-            // Zoom molette
-            float scroll = Mouse.current?.scroll.y.ReadValue() ?? 0f;
-            if (Mathf.Abs(scroll) > 0.01f)
-            {
-                _targetZoom -= scroll * 2f;
-                _targetZoom = Mathf.Clamp(_targetZoom, _minZoom, _maxZoom);
-            }
-
-            // Pan clic droit
-            if (Mouse.current?.rightButton.wasPressedThisFrame == true)
-            {
-                _dragOrigin = GetWorldPoint(Mouse.current.position.ReadValue());
-                _isDragging = true;
-            }
-            else if (_isDragging && Mouse.current?.rightButton.isPressed == true)
-            {
-                Vector3 currentWorld = GetWorldPoint(Mouse.current.position.ReadValue());
-                Vector3 delta = _dragOrigin - currentWorld;
-                _targetPosition += delta * _panSpeed;
-                ClampPosition();
-            }
-            else if (Mouse.current?.rightButton.wasReleasedThisFrame == true)
-            {
-                _isDragging = false;
-            }
+            float s = Input.GetAxis("Mouse ScrollWheel"); if (Mathf.Abs(s) > 0.001f) { _targetZoom -= s * 10f; _targetZoom = Mathf.Clamp(_targetZoom, _minZoom, _maxZoom); }
+            if (Input.GetMouseButtonDown(1)) { _dragOrigin = W(Input.mousePosition); _dragging = true; }
+            else if (_dragging && Input.GetMouseButton(1)) { _targetPos += (_dragOrigin - W(Input.mousePosition)) * _panSpeed; Clip(); }
+            else if (Input.GetMouseButtonUp(1)) _dragging = false;
         }
 
-        private Vector3 GetWorldPoint(Vector2 screenPoint)
-        {
-            // Pour orthographique, le Z n'importe pas mais doit etre coherent
-            return _cam.ScreenToWorldPoint(new Vector3(screenPoint.x, screenPoint.y, _cam.transform.position.y));
-        }
-
-        private void ApplySmoothing()
-        {
-            // Zoom lisse
-            _cam.orthographicSize = Mathf.Lerp(
-                _cam.orthographicSize, _targetZoom,
-                Time.deltaTime * _zoomDamping);
-
-            // Position lisse
-            transform.position = Vector3.Lerp(
-                transform.position,
-                new Vector3(_targetPosition.x, transform.position.y, _targetPosition.z),
-                Time.deltaTime * _panDamping);
-        }
-
-        private void ClampPosition()
-        {
-            // Les limites dependent du zoom (plus on est zoome, moins on peut sortir)
-            float vertExtent = _cam.orthographicSize;
-            float horzExtent = vertExtent * _cam.aspect;
-
-            _targetPosition.x = Mathf.Clamp(
-                _targetPosition.x,
-                -_boundsPadding + horzExtent,
-                _mapWidth + _boundsPadding - horzExtent);
-
-            _targetPosition.z = Mathf.Clamp(
-                _targetPosition.z,
-                -_boundsPadding + vertExtent,
-                _mapHeight + _boundsPadding - vertExtent);
-        }
+        private Vector3 W(Vector2 s) => _cam.ScreenToWorldPoint(new Vector3(s.x, s.y, _cam.transform.position.y));
+        private void Smooth() { _cam.orthographicSize = Mathf.Lerp(_cam.orthographicSize, _targetZoom, Time.deltaTime * _zoomDamping); transform.position = Vector3.Lerp(transform.position, new Vector3(_targetPos.x, transform.position.y, _targetPos.z), Time.deltaTime * _panDamping); }
+        private void Clip() { float v = _cam.orthographicSize, h = v * _cam.aspect; _targetPos.x = Mathf.Clamp(_targetPos.x, -_boundsPadding + h, _mapWidth + _boundsPadding - h); _targetPos.z = Mathf.Clamp(_targetPos.z, -_boundsPadding + v, _mapHeight + _boundsPadding - v); }
     }
 }
