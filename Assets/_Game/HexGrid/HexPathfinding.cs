@@ -43,7 +43,7 @@ namespace CivVSCiv
             var closedSet = new HashSet<HexCoordinates>();
             var nodeMap = new Dictionary<HexCoordinates, Node>();
 
-            var startNode = new Node { Coords = start, GCost = 0, HCost = start.DistanceTo(goal) };
+            var startNode = new Node { Coords = start, GCost = 0, HCost = start.WrappedDistanceTo(goal, width) };
             openSet.Add(startNode);
             nodeMap[start] = startNode;
 
@@ -70,10 +70,10 @@ namespace CivVSCiv
 
                 closedSet.Add(current.Coords);
 
-                foreach (var neighbor in current.Coords.GetNeighbors())
+                foreach (var neighbor in current.Coords.GetNeighborsWrapped(width, height))
                 {
                     var (nx, ny) = neighbor.ToOffset();
-                    if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+                    if (ny < 0 || ny >= height) continue;
                     if (closedSet.Contains(neighbor)) continue;
 
                     int moveCost = cells[nx, ny].MovementCost;
@@ -88,7 +88,7 @@ namespace CivVSCiv
                         {
                             neighborNode.Parent = current;
                             neighborNode.GCost = tentativeG;
-                            neighborNode.HCost = neighbor.DistanceTo(goal);
+                            neighborNode.HCost = neighbor.WrappedDistanceTo(goal, width);
                         }
                     }
                     else
@@ -99,7 +99,7 @@ namespace CivVSCiv
                             Coords = neighbor,
                             Parent = current,
                             GCost = tentativeG,
-                            HCost = neighbor.DistanceTo(goal)
+                            HCost = neighbor.WrappedDistanceTo(goal, width)
                         };
                         nodeMap[neighbor] = neighborNode;
                         openSet.Add(neighborNode);

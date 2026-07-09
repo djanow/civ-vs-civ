@@ -55,6 +55,58 @@ namespace CivVSCiv
         }
 
         /// <summary>
+        /// Retourne les 6 voisins en wrap horizontal pour une carte cylindrique.
+        /// Les coordonnees dont la colonne depasse les bornes sont ramenees
+        /// de l'autre cote de la carte. Les voisins hors limites en Y sont exclus.
+        /// </summary>
+        public HexCoordinates[] GetNeighborsWrapped(int mapWidth, int mapHeight)
+        {
+            var raw = GetNeighbors();
+            var result = new System.Collections.Generic.List<HexCoordinates>(6);
+            foreach (var n in raw)
+            {
+                var (col, row) = n.ToOffset();
+                if (row < 0 || row >= mapHeight) continue;
+                // Wrap horizontal
+                col = ((col % mapWidth) + mapWidth) % mapWidth;
+                result.Add(FromOffset(col, row));
+            }
+            return result.ToArray();
+        }
+
+        /// <summary>
+        /// Retourne la coordonnee en wrapant la colonne horizontalement
+        /// dans les limites [0, mapWidth[. Utilise pour traverser le globe.
+        /// </summary>
+        public HexCoordinates Wrap(int mapWidth)
+        {
+            var (col, row) = ToOffset();
+            col = ((col % mapWidth) + mapWidth) % mapWidth;
+            return FromOffset(col, row);
+        }
+
+        /// <summary>
+        /// Distance minimale entre deux cellules en tenant compte du wrap
+        /// horizontal (carte cylindrique). Essaye la position originale et
+        /// la position wrappee pour trouver le chemin le plus court.
+        /// </summary>
+        public int WrappedDistanceTo(HexCoordinates other, int mapWidth)
+        {
+            // Distance directe
+            int direct = DistanceTo(other);
+
+            // Distance en wrapant other d'une largeur a gauche et a droite
+            var (oc, or) = other.ToOffset();
+            var left = FromOffset(oc - mapWidth, or);
+            var right = FromOffset(oc + mapWidth, or);
+
+            int dLeft = DistanceTo(left);
+            int dRight = DistanceTo(right);
+
+            return Math.Min(direct, Math.Min(dLeft, dRight));
+        }
+
+        /// <summary>
         /// Conversion d'un offset "odd-r" (col, row) vers coordonnées cubiques.
         /// odd-r : les lignes impaires sont décalées vers la droite.
         /// </summary>

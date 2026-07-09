@@ -18,6 +18,7 @@ namespace CivVSCiv
             new Color(0.55f, 0.5f, 0.4f), new Color(0.45f, 0.85f, 0.3f),
             new Color(0.1f, 0.5f, 0.15f), new Color(0.6f, 0.85f, 0.35f),
             new Color(0.95f, 0.85f, 0.5f), new Color(0.45f, 0.55f, 0.3f),
+            new Color(0.8f, 0.9f, 1.0f), // Ice - blanc-bleute
         };
 
         private static readonly (string tile, string deco)[] KayKitMapping = {
@@ -29,14 +30,15 @@ namespace CivVSCiv
             ("KayKit/tiles/base/hex_grass",        null),
             ("KayKit/tiles/base/hex_grass",        null),
             ("KayKit/tiles/base/hex_grass",        null),
+            ("KayKit/tiles/base/hex_water",        null), // Ice -> hex_water (rendu comme glace)
         };
 
         private void Awake()
         {
             _gridParent = new GameObject("HexGrid").transform;
             _gridParent.SetParent(transform);
-            _tilePrefabs = new GameObject[8];
-            _decoPrefabs = new GameObject[8];
+            _tilePrefabs = new GameObject[9];
+            _decoPrefabs = new GameObject[9];
             LoadKayKit();
             EventBus.Subscribe<GameEvents.MapGenerated>(OnMapGenerated);
         }
@@ -44,7 +46,7 @@ namespace CivVSCiv
         private void LoadKayKit()
         {
             int found = 0;
-            for (int i = 0; i < 8; i++)
+            for (int i = 0; i < 9; i++)
             {
                 var (tilePath, decoPath) = KayKitMapping[i];
                 _tilePrefabs[i] = Resources.Load<GameObject>(tilePath);
@@ -53,7 +55,7 @@ namespace CivVSCiv
                 if (_tilePrefabs[i] != null) found++;
             }
             _useKayKit = found >= 2;
-            Debug.Log(_useKayKit ? $"[KayKit] Loaded {found}/8 types" : "[KayKit] Fallback to cubes");
+            Debug.Log(_useKayKit ? $"[KayKit] Loaded {found}/9 types" : "[KayKit] Fallback to cubes");
         }
 
         private void OnDestroy() => EventBus.Unsubscribe<GameEvents.MapGenerated>(OnMapGenerated);
@@ -77,7 +79,7 @@ namespace CivVSCiv
                     var cell = _cells[x, y];
                     var pos = HexToWorld(cell.Coordinates);
                     int idx = (int)cell.TileType;
-                    if (idx < 0 || idx >= 8) idx = 0;
+                    if (idx < 0 || idx >= 9) idx = 0;
 
                     if (_useKayKit && _tilePrefabs[idx] != null)
                     {

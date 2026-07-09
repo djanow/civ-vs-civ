@@ -20,13 +20,16 @@ namespace CivVSCiv
                 if (cam == null) { var cgo = new GameObject("Main Camera"); cgo.tag = "MainCamera"; cam = cgo.AddComponent<Camera>(); }
                 cam.clearFlags = CameraClearFlags.SolidColor;
                 cam.backgroundColor = new Color(0.05f, 0.08f, 0.15f);
-                cam.orthographic = true;
-                cam.orthographicSize = 18f;
+                cam.orthographic = false;
+                cam.fieldOfView = 60f;
                 cam.nearClipPlane = 0.1f; cam.farClipPlane = 500f;
-                cam.transform.position = new Vector3(30, 35, 15);
-                cam.transform.rotation = Quaternion.Euler(55, 0, 0);
+                cam.transform.position = new Vector3(30, 28.7f, 46.1f);
+                cam.transform.rotation = Quaternion.identity;
                 if (cam.GetComponent<CameraController>() == null)
-                    cam.gameObject.AddComponent<CameraController>();
+                {
+                    var cc = cam.gameObject.AddComponent<CameraController>();
+                    // Reinitialiser la vue globe dans CameraController via les valeurs par defaut du component
+                }
 
                 if (Object.FindAnyObjectByType<Light>() == null)
                 {

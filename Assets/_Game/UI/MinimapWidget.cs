@@ -131,13 +131,24 @@ namespace CivVSCiv
             if (_viewportRect == null || _mainCamera == null) return;
             float mw = GameManager.Instance?.Width ?? 40;
             float mh = GameManager.Instance?.Height ?? 30;
-            float cw = _mainCamera.orthographicSize * _mainCamera.aspect;
-            float ch = _mainCamera.orthographicSize;
             float ww = mw * 1.5f, wh = mh * Mathf.Sqrt(3f);
-            float nx = _mainCamera.transform.position.x / ww, nz = _mainCamera.transform.position.z / wh;
-            float nw = cw * 2f / ww, nh = ch * 2f / wh;
-            _viewportRect.anchorMin = new Vector2(nx - nw / 2f, 1f - nz + nh / 2f);
-            _viewportRect.anchorMax = new Vector2(nx + nw / 2f, 1f - nz - nh / 2f);
+
+            // Camera world position on the map plane
+            Vector3 camPos = _mainCamera.transform.position;
+
+            // Normalized map coordinates (0-1)
+            float nx = Mathf.Clamp01(camPos.x / ww);
+            float nz = Mathf.Clamp01(camPos.z / wh);
+
+            // Flip Z for minimap Y (world Z up -> screen Y down in minimap)
+            float my = 1f - nz;
+
+            // Indicator size correlates with camera height (closer = bigger indicator)
+            float zoomFactor = Mathf.Clamp01(1f - (camPos.y - 10f) / 50f);
+            float s = 0.03f + zoomFactor * 0.07f;
+
+            _viewportRect.anchorMin = new Vector2(Mathf.Clamp01(nx - s), Mathf.Clamp01(my - s));
+            _viewportRect.anchorMax = new Vector2(Mathf.Clamp01(nx + s), Mathf.Clamp01(my + s));
         }
 
         public void SetUIRefs(RawImage img, RectTransform vp) { _minimapImage = img; _viewportRect = vp; if (_minimapImage != null) _minimapImage.texture = _minimapRT; }

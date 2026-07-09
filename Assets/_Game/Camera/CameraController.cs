@@ -2,56 +2,113 @@ using UnityEngine;
 
 namespace CivVSCiv
 {
+    /// <summary>
+    /// Camera orbit globe — style Civilization Revolution 2.
+    /// Orbite autour d'un point central avec une vue perspective.
+    /// Zoom avant/arriere, rotation gauche/droite, inclinaison.
+    /// </summary>
     public class CameraController : MonoBehaviour
     {
-        [SerializeField] private float _minZoom = 3f, _maxZoom = 20f, _zoomSpeed = 0.01f, _zoomDamping = 5f, _defaultZoom = 10f;
-        [SerializeField] private float _panSpeed = 1f, _panDamping = 8f;
-        [SerializeField] private float _mapWidth = 60f, _mapHeight = 50f, _boundsPadding = 2f;
+        [SerializeField] private float _distance = 30f;     // Distance au centre
+        [SerializeField] private float _minDist = 8f;        // Zoom max (rapproche)
+        [SerializeField] private float _maxDist = 60f;       // Zoom max (eloigne — vue globe)
+        [SerializeField] private float _yaw = 0f;            // Rotation autour de Y
+        [SerializeField] private float _pitch = 60f;         // Angle par rapport a l'horizontale
+        [SerializeField] private float _orbitSpeed = 2f;
+        [SerializeField] private float _zoomSpeed = 5f;
+        [SerializeField] private float _damping = 8f;
+        [SerializeField] private Vector3 _center = new Vector3(30, 0, 26);
 
         private Camera _cam;
-        private Vector3 _targetPos;
-        private float _targetZoom;
-        private Vector3 _dragOrigin;
-        private bool _dragging;
-        private float _prevPinch;
+        private float _targetDistance;
+        private float _targetYaw;
+        private float _targetPitch;
 
         private void Awake()
         {
-            _cam = GetComponent<Camera>() ?? Camera.main;
-            _targetZoom = _defaultZoom; _cam.orthographicSize = _defaultZoom;
-            _targetPos = new Vector3(_mapWidth / 2f, transform.position.y, _mapHeight / 2f);
-            transform.position = _targetPos;
-        }
-        private void Update() { Touch(); Desktop(); Smooth(); }
+            _cam = GetComponent<Camera>();
+            if (_cam == null) _cam = Camera.main;
 
-        private void Touch()
+            _targetDistance = _distance;
+            _targetYaw = _yaw;
+            _targetPitch = _pitch;
+
+            ApplyPosition();
+        }
+
+        private void Update()
         {
-            if (Input.touchCount == 0) return;
-            if (Input.touchCount == 1)
+            // Orbite avec clic droit maintenu
+            if (Input.GetMouseButton(1))
             {
-                var t = Input.GetTouch(0);
-                if (t.phase == TouchPhase.Began) { _dragOrigin = W(t.position); _dragging = true; }
-                else if (_dragging && (t.phase == TouchPhase.Moved || t.phase == TouchPhase.Stationary))
-                { _targetPos += (_dragOrigin - W(t.position)) * _panSpeed; Clip(); }
-                else if (t.phase >= TouchPhase.Ended) _dragging = false;
+                _targetYaw += Input.GetAxis("Mouse X") * _orbitSpeed;
+                if (_targetDistance < 40f)
+                    _targetPitch -= Input.GetAxis("Mouse Y") * _orbitSpeed;
+                _targetPitch = Mathf.Clamp(_targetPitch, 20f, 85f);
             }
-            else { _dragging = false; var a = Input.GetTouch(0); var b = Input.GetTouch(1);
-                if (a.phase == TouchPhase.Began || b.phase == TouchPhase.Began) _prevPinch = Vector2.Distance(a.position,b.position);
-                else if (a.phase == TouchPhase.Moved || b.phase == TouchPhase.Moved)
-                { float d = Vector2.Distance(a.position,b.position); _targetZoom += (_prevPinch - d) * _zoomSpeed; _targetZoom = Mathf.Clamp(_targetZoom, _minZoom, _maxZoom); _prevPinch = d; }
+
+            // Zoom avec la molette
+            float scroll = Input.GetAxis("Mouse ScrollWheel");
+            if (Mathf.Abs(scroll) > 0.001f)
+            {
+                _targetDistance -= scroll * _zoomSpeed * 5f;
+                _targetDistance = Mathf.Clamp(_targetDistance, _minDist, _maxDist);
             }
+
+            // Appliquer avec damping
+            ApplySmooth();
         }
 
-        private void Desktop()
+        private void ApplySmooth()
         {
-            float s = Input.GetAxis("Mouse ScrollWheel"); if (Mathf.Abs(s) > 0.001f) { _targetZoom -= s * 10f; _targetZoom = Mathf.Clamp(_targetZoom, _minZoom, _maxZoom); }
-            if (Input.GetMouseButtonDown(1)) { _dragOrigin = W(Input.mousePosition); _dragging = true; }
-            else if (_dragging && Input.GetMouseButton(1)) { _targetPos += (_dragOrigin - W(Input.mousePosition)) * _panSpeed; Clip(); }
-            else if (Input.GetMouseButtonUp(1)) _dragging = false;
+            _yaw = Mathf.Lerp(_yaw, _targetYaw, Time.deltaTime * _damping);
+            _pitch = Mathf.Lerp(_pitch, _targetPitch, Time.deltaTime * _damping);
+            _distance = Mathf.Lerp(_distance, _targetDistance, Time.deltaTime * _damping);
+
+            // Forcer la distance cible apres le damping pour eviter le depassement
+            if (Mathf.Abs(_distance - _targetDistance) < 0.01f)
+                _distance = _targetDistance;
+
+            ApplyPosition();
         }
 
-        private Vector3 W(Vector2 s) => _cam.ScreenToWorldPoint(new Vector3(s.x, s.y, _cam.transform.position.y));
-        private void Smooth() { _cam.orthographicSize = Mathf.Lerp(_cam.orthographicSize, _targetZoom, Time.deltaTime * _zoomDamping); transform.position = Vector3.Lerp(transform.position, new Vector3(_targetPos.x, transform.position.y, _targetPos.z), Time.deltaTime * _panDamping); }
-        private void Clip() { float v = _cam.orthographicSize, h = v * _cam.aspect; _targetPos.x = Mathf.Clamp(_targetPos.x, -_boundsPadding + h, _mapWidth + _boundsPadding - h); _targetPos.z = Mathf.Clamp(_targetPos.z, -_boundsPadding + v, _mapHeight + _boundsPadding - v); }
+        private void ApplyPosition()
+        {
+            float pitchRad = _pitch * Mathf.Deg2Rad;
+            float yawRad = _yaw * Mathf.Deg2Rad;
+
+            Vector3 targetPos = _center + new Vector3(
+                Mathf.Sin(yawRad) * Mathf.Cos(pitchRad) * _distance,
+                Mathf.Sin(pitchRad) * _distance,
+                Mathf.Cos(yawRad) * Mathf.Cos(pitchRad) * _distance
+            );
+
+            transform.position = targetPos;
+            transform.LookAt(_center);
+        }
+
+        /// <summary>
+        /// Reinitialise la camera a une vue globe par defaut.
+        /// </summary>
+        public void ResetToGlobeView()
+        {
+            _targetDistance = 35f;
+            _targetYaw = 0f;
+            _targetPitch = 55f;
+        }
+
+        /// <summary>
+        /// Centre la camera sur des coordonnees hex donnees.
+        /// </summary>
+        public void FocusOnHex(HexCoordinates coords)
+        {
+            var (col, row) = coords.ToOffset();
+            float wx = col * 1.5f;
+            float wz = row * Mathf.Sqrt(3f) + (col % 2 == 1 ? Mathf.Sqrt(3f) * 0.5f : 0f);
+
+            _center = new Vector3(wx, 0, wz);
+            _targetDistance = 15f;
+            _targetPitch = 40f;
+        }
     }
 }

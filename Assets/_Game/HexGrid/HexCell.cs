@@ -11,7 +11,8 @@ namespace CivVSCiv
         Forest,     // +1 defense, -1 mouvement, cache les unites
         Plain,      // Neutre, ideale agriculture
         Desert,     // -1 nourriture, bonus or
-        Marsh       // -1 mouvement, malus defense
+        Marsh,      // -1 mouvement, malus defense
+        Ice         // Calotte glaciaire, infranchissable
     }
 
     /// <summary>
@@ -50,6 +51,7 @@ namespace CivVSCiv
                     case TileType.Sea:
                     case TileType.Ocean:
                     case TileType.Mountain when !IsMountainPass:
+                    case TileType.Ice:
                         return -1; // Infranchissable
                     case TileType.Forest:
                     case TileType.Marsh:

@@ -33,6 +33,19 @@ namespace CivVSCiv
                 }
             }
 
+            // Etape 3b : calottes glaciaires (2 rangees en haut et en bas)
+            for (int x = 0; x < config.Width; x++)
+            {
+                for (int y = 0; y < 2 && y < config.Height; y++)
+                {
+                    cells[x, y] = new HexCell(HexCoordinates.FromOffset(x, y), TileType.Ice);
+                }
+                for (int y = config.Height - 2; y < config.Height && y >= 0; y++)
+                {
+                    cells[x, y] = new HexCell(HexCoordinates.FromOffset(x, y), TileType.Ice);
+                }
+            }
+
             // Etape 4 : generer les rivieres
             GenerateRivers(cells, elevation, config);
 
@@ -136,15 +149,16 @@ namespace CivVSCiv
                 {
                     cells[cx, cy].HasRiver = true;
 
-                    // Chercher le voisin le plus bas
+                    // Chercher le voisin le plus bas (avec wrap horizontal)
                     float lowest = elevation[cx, cy];
                     int nx = cx, ny = cy;
                     var coords = HexCoordinates.FromOffset(cx, cy);
-                    foreach (var neighbor in coords.GetNeighbors())
+                    foreach (var neighbor in coords.GetNeighborsWrapped(config.Width, config.Height))
                     {
                         var (nx2, ny2) = neighbor.ToOffset();
-                        if (nx2 < 0 || nx2 >= config.Width || ny2 < 0 || ny2 >= config.Height)
+                        if (ny2 < 0 || ny2 >= config.Height)
                             continue;
+                        if (cells[nx2, ny2].TileType == TileType.Ice) continue;
                         if (elevation[nx2, ny2] < lowest)
                         {
                             lowest = elevation[nx2, ny2];
@@ -169,12 +183,12 @@ namespace CivVSCiv
 
                     var coords = HexCoordinates.FromOffset(x, y);
                     int plainNeighbors = 0;
-                    foreach (var n in coords.GetNeighbors())
+                    foreach (var n in coords.GetNeighborsWrapped(config.Width, config.Height))
                     {
                         var (nx, ny) = n.ToOffset();
-                        if (nx < 0 || nx >= config.Width || ny < 0 || ny >= config.Height) continue;
                         var neighborType = cells[nx, ny].TileType;
-                        if (neighborType != TileType.Mountain && neighborType != TileType.Ocean)
+                        if (neighborType != TileType.Mountain && neighborType != TileType.Ocean
+                            && neighborType != TileType.Ice)
                             plainNeighbors++;
                     }
 
@@ -198,7 +212,8 @@ namespace CivVSCiv
                 int y = Random.Range(0, config.Height);
                 if (cells[x, y].TileType != TileType.Sea &&
                     cells[x, y].TileType != TileType.Ocean &&
-                    cells[x, y].TileType != TileType.Mountain)
+                    cells[x, y].TileType != TileType.Mountain &&
+                    cells[x, y].TileType != TileType.Ice)
                 {
                     cells[x, y].LuxuryResourceId = Random.Range(0, 4); // 4 types de luxe
                 }
@@ -216,15 +231,16 @@ namespace CivVSCiv
                 int x, y;
                 do
                 {
-                    x = Random.Range(5, config.Width - 5);
-                    y = Random.Range(5, config.Height - 5);
+                    x = Random.Range(0, config.Width);
+                    y = Random.Range(2, config.Height - 2); // Evite les calottes
                     valid = cells[x, y].MovementCost > 0; // Terrain franchissable
+                    valid = valid && cells[x, y].TileType != TileType.Ice; // Pas sur la glace
 
-                    // Verifier distance minimale avec les autres departs
+                    // Verifier distance minimale avec les autres departs (avec wrap)
                     var coords = HexCoordinates.FromOffset(x, y);
                     for (int j = 0; j < i && valid; j++)
                     {
-                        if (coords.DistanceTo(positions[j]) < config.MinDistanceBetweenCivs)
+                        if (coords.WrappedDistanceTo(positions[j], config.Width) < config.MinDistanceBetweenCivs)
                             valid = false;
                     }
 
