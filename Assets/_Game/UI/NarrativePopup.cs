@@ -118,6 +118,14 @@ namespace CivVSCiv
                 Deactivate();
             }
 
+            // Notifier le TurnManager que l'evenement narratif est termine
+            if (_currentEvent != null)
+            {
+                var tm = FindAnyObjectByType<TurnManager>();
+                if (tm != null)
+                    tm.OnNarrativeEventDismissed();
+            }
+
             _currentEvent = null;
             _displayTimer = 0f;
         }

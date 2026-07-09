@@ -63,10 +63,12 @@ namespace CivVSCiv
             _minimapCamera = camGo.AddComponent<Camera>();
             _minimapCamera.orthographic = true;
             _minimapCamera.orthographicSize = 35f;
-            _minimapCamera.cullingMask = LayerMask.GetMask("Minimap");
+            // Rendre le layer Default (terrain) sur fond noir
+            _minimapCamera.cullingMask = 1 << LayerMask.NameToLayer("Default");
             _minimapCamera.clearFlags = CameraClearFlags.SolidColor;
             _minimapCamera.backgroundColor = Color.black;
-            _minimapCamera.transform.position = new Vector3(0, 100f, 0);
+            // Centrer approximativement sur la carte
+            _minimapCamera.transform.position = new Vector3(30f, 100f, 26f);
             _minimapCamera.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
 
             _minimapRT = new RenderTexture(_minimapResolution, _minimapResolution, 16);
@@ -78,9 +80,16 @@ namespace CivVSCiv
 
         private void OnMapGenerated(GameEvents.MapGenerated evt)
         {
-            // Ajuster la taille ortho de la caméra minimap
+            // Calculer les dimensions du monde
             float mapWorldWidth = evt.Width * 1.5f;
             float mapWorldHeight = evt.Height * Mathf.Sqrt(3f);
+
+            // Centrer la camera sur la carte
+            float centerX = mapWorldWidth / 2f;
+            float centerZ = mapWorldHeight / 2f;
+            _minimapCamera.transform.position = new Vector3(centerX, 100f, centerZ);
+
+            // Ajuster la taille ortho
             _minimapCamera.orthographicSize = Mathf.Max(mapWorldWidth, mapWorldHeight) / 2f;
         }
 

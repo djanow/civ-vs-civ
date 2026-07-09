@@ -290,6 +290,10 @@ namespace CivVSCiv
             if (_researchManager != null)
                 _researchManager.Initialize(_civCount);
 
+            // Populer les événements narratifs (Task 3)
+            if (_eventManager != null)
+                NarrativeEventsContent.PopulateEventManager(_eventManager);
+
             Debug.Log("[GameManager] Tous les managers initialisés.");
         }
 

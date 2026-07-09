@@ -12,6 +12,11 @@ namespace CivVSCiv
         [Header("Configuration")]
         [SerializeField] private int _cityStateCount = 3;
 
+        [Header("Visuel")]
+        [SerializeField] private float _markerHeight = 0.8f;
+        [SerializeField] private float _markerRadius = 0.25f;
+        [SerializeField] private Color _markerColor = new Color(0.85f, 0.85f, 0.85f);
+
         [Header("Debug")]
         [SerializeField] private bool _showDebugLogs = true;
 
@@ -28,15 +33,14 @@ namespace CivVSCiv
         /// </summary>
         public List<CityState> CityStates => _cityStates;
 
+        private HexGridRenderer _gridRenderer;
+        private List<GameObject> _markerObjects = new List<GameObject>();
+
         private void Awake()
         {
             _cityStates = new List<CityState>();
+            _gridRenderer = FindAnyObjectByType<HexGridRenderer>();
             EventBus.Subscribe<GameEvents.MapGenerated>(OnMapGenerated);
-        }
-
-        private void OnDestroy()
-        {
-            EventBus.Unsubscribe<GameEvents.MapGenerated>(OnMapGenerated);
         }
 
         private void OnMapGenerated(GameEvents.MapGenerated evt)
@@ -46,10 +50,12 @@ namespace CivVSCiv
 
         /// <summary>
         /// Génère les cités-états sur la carte à des positions valides.
+        /// Crée également des marqueurs visibles (cylindres blanc/gris).
         /// </summary>
         public void GenerateCityStates(HexCell[,] cells, int count)
         {
             _cityStates.Clear();
+            DestroyMarkers();
 
             if (cells == null || count <= 0) return;
 
@@ -131,6 +137,9 @@ namespace CivVSCiv
 
                 _cityStates.Add(cityState);
                 placed++;
+
+                // Creer un marqueur visible sur la carte
+                CreateMarker(cityState);
 
                 if (_showDebugLogs)
                     Debug.Log($"[CityStateManager] Placee: {name} at {coords}.");
@@ -242,6 +251,59 @@ namespace CivVSCiv
                 names[i] = names[j];
                 names[j] = temp;
             }
+        }
+
+        // ----------------------------------------------------------------
+        // Marqueurs visuels (Task 4)
+        // ----------------------------------------------------------------
+
+        /// <summary>
+        /// Crée un marqueur cylindrique visible pour une cité-état.
+        /// </summary>
+        private void CreateMarker(CityState cs)
+        {
+            if (_gridRenderer == null)
+                _gridRenderer = FindAnyObjectByType<HexGridRenderer>();
+
+            Vector3 worldPos = _gridRenderer != null
+                ? _gridRenderer.HexToWorld(cs.Location)
+                : Vector3.zero;
+
+            var marker = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            marker.name = $"CityState_{cs.Name}";
+            marker.transform.localScale = new Vector3(_markerRadius, _markerHeight, _markerRadius);
+            marker.transform.position = new Vector3(worldPos.x, _markerHeight, worldPos.z);
+
+            var mr = marker.GetComponent<MeshRenderer>();
+            var mat = new Material(Shader.Find("Standard"));
+            mat.color = _markerColor;
+            mr.sharedMaterial = mat;
+
+            // Supprimer le collider pour ne pas bloquer les clics
+            Destroy(marker.GetComponent<Collider>());
+
+            _markerObjects.Add(marker);
+        }
+
+        /// <summary>
+        /// Détruit tous les marqueurs de cités-états.
+        /// </summary>
+        private void DestroyMarkers()
+        {
+            foreach (var marker in _markerObjects)
+            {
+                if (marker != null) Destroy(marker);
+            }
+            _markerObjects.Clear();
+        }
+
+        /// <summary>
+        /// Détruit les marqueurs quand le manager est détruit.
+        /// </summary>
+        private void OnDestroy()
+        {
+            EventBus.Unsubscribe<GameEvents.MapGenerated>(OnMapGenerated);
+            DestroyMarkers();
         }
 
         /// <summary>

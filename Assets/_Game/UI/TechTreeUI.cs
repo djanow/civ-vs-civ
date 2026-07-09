@@ -27,6 +27,9 @@ namespace CivVSCiv
         [Header("Era Labels")]
         [SerializeField] private string[] _eraLabels = { "Antiquite", "Classique", "Medievale" };
 
+        /// <summary>Callback appele quand le joueur clique sur une tech disponible.</summary>
+        public System.Action<int> OnTechClicked;
+
         private ResearchManager _researchManager;
         private int _currentPlayerIndex;
         private bool _isVisible;
@@ -66,13 +69,102 @@ namespace CivVSCiv
             _currentPlayerIndex = playerIndex;
             _isVisible = true;
 
+            EnsureUIRefs();
+
             if (_panelRoot != null)
                 _panelRoot.SetActive(true);
 
             if (_titleText != null)
-                _titleText.text = "Arbre Technologique";
+                _titleText.text = "Choisissez une technologie a rechercher";
 
             RefreshTechDisplay();
+
+            // Si aucune tech disponible, fermer et avancer immediatement
+            if (_researchManager != null && _researchManager.GetAvailableTechs(playerIndex).Count == 0)
+            {
+                Debug.Log("[TechTreeUI] Aucune tech disponible, fermeture.");
+                Hide();
+                if (OnTechClicked != null)
+                    OnTechClicked(-1);
+            }
+        }
+
+        /// <summary>
+        /// Cree les elements UI si les references sont nulles (zero-setup).
+        /// </summary>
+        private void EnsureUIRefs()
+        {
+            if (_panelRoot != null) return;
+
+            var canvas = FindAnyObjectByType<Canvas>();
+            if (canvas == null)
+            {
+                var go = new GameObject("TechCanvas");
+                canvas = go.AddComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                go.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                go.AddComponent<GraphicRaycaster>();
+            }
+
+            // Panel root
+            _panelRoot = new GameObject("TechTreePanel", typeof(Image));
+            _panelRoot.transform.SetParent(canvas.transform, false);
+            var rt = _panelRoot.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.2f, 0.15f);
+            rt.anchorMax = new Vector2(0.8f, 0.85f);
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
+            var bg = _panelRoot.GetComponent<Image>();
+            bg.color = new Color(0.08f, 0.08f, 0.12f, 0.95f);
+
+            // Title
+            var titleGO = new GameObject("Title", typeof(Text));
+            titleGO.transform.SetParent(_panelRoot.transform, false);
+            _titleText = titleGO.GetComponent<Text>();
+            _titleText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _titleText.fontSize = 22;
+            _titleText.color = Color.white;
+            _titleText.alignment = TextAnchor.MiddleCenter;
+            var titleRT = _titleText.GetComponent<RectTransform>();
+            titleRT.anchorMin = new Vector2(0, 0.88f);
+            titleRT.anchorMax = new Vector2(1, 1);
+            titleRT.offsetMin = titleRT.offsetMax = Vector2.zero;
+
+            // Tech container (vertical layout for scrollable list)
+            var contGO = new GameObject("TechContainer", typeof(Image));
+            contGO.transform.SetParent(_panelRoot.transform, false);
+            _techContainer = contGO.transform;
+            var contRT = contGO.GetComponent<RectTransform>();
+            contRT.anchorMin = new Vector2(0.05f, 0.08f);
+            contRT.anchorMax = new Vector2(0.95f, 0.83f);
+            contRT.offsetMin = contRT.offsetMax = Vector2.zero;
+            var contImage = contGO.GetComponent<Image>();
+            contImage.color = new Color(0.12f, 0.12f, 0.18f, 0.8f);
+
+            // Close button at bottom
+            var closeBtn = new GameObject("CloseBtn", typeof(Image), typeof(Button));
+            closeBtn.transform.SetParent(_panelRoot.transform, false);
+            var closeRT = closeBtn.GetComponent<RectTransform>();
+            closeRT.anchorMin = new Vector2(0.35f, 0.01f);
+            closeRT.anchorMax = new Vector2(0.65f, 0.06f);
+            closeRT.offsetMin = closeRT.offsetMax = Vector2.zero;
+            var closeImage = closeBtn.GetComponent<Image>();
+            closeImage.color = new Color(0.3f, 0.3f, 0.3f);
+            var closeLabel = new GameObject("CloseLabel", typeof(Text));
+            closeLabel.transform.SetParent(closeBtn.transform, false);
+            var clText = closeLabel.GetComponent<Text>();
+            clText.text = "Fermer";
+            clText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            clText.fontSize = 14;
+            clText.color = Color.white;
+            clText.alignment = TextAnchor.MiddleCenter;
+            var clRT = clText.GetComponent<RectTransform>();
+            clRT.anchorMin = Vector2.zero; clRT.anchorMax = Vector2.one;
+            clRT.offsetMin = clRT.offsetMax = Vector2.zero;
+            closeBtn.GetComponent<Button>().onClick.AddListener(() => {
+                Hide();
+                if (OnTechClicked != null)
+                    OnTechClicked(-1);
+            });
         }
 
         /// <summary>
@@ -105,7 +197,9 @@ namespace CivVSCiv
             if (_researchManager.CanResearch(_currentPlayerIndex, techId))
             {
                 _researchManager.SetResearch(_currentPlayerIndex, techId);
-                RefreshTechDisplay();
+                Hide();
+                if (OnTechClicked != null)
+                    OnTechClicked(techId);
             }
             else
             {

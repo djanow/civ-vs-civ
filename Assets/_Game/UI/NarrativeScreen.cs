@@ -279,6 +279,11 @@ namespace CivVSCiv
         {
             gameObject.SetActive(false);
             GameManager.Instance.CurrentState = GameState.Playing;
+
+            // Notifier le TurnManager que l'evenement est termine
+            var tm = FindAnyObjectByType<TurnManager>();
+            if (tm != null)
+                tm.OnNarrativeEventDismissed();
         }
 
         private void AutoDismiss()
