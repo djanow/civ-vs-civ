@@ -298,23 +298,22 @@ namespace CivVSCiv
                 Debug.Log($"[TurnManager] Victoire! Joueur {lastPlayerWithCities} gagne la partie!");
                 gm.SetGameOver();
 
-                // Afficher un texte de victoire simple
-                var canvas = FindAnyObjectByType<Canvas>();
-                if (canvas != null)
+                // Récupérer le nom de la civilisation gagnante
+                string civName = "civilisation inconnue";
+                if (gm.CivManager != null)
                 {
-                    var victoryText = new GameObject("VictoryText", typeof(UnityEngine.UI.Text));
-                    victoryText.transform.SetParent(canvas.transform, false);
-                    var vt = victoryText.GetComponent<UnityEngine.UI.Text>();
-                    vt.text = $"VICTOIRE! Joueur {lastPlayerWithCities} remporte la partie!";
-                    vt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                    vt.fontSize = 48;
-                    vt.color = Color.yellow;
-                    vt.alignment = TextAnchor.MiddleCenter;
-                    var vtRT = vt.GetComponent<RectTransform>();
-                    vtRT.anchorMin = Vector2.zero;
-                    vtRT.anchorMax = Vector2.one;
-                    vtRT.offsetMin = vtRT.offsetMax = Vector2.zero;
+                    var civData = gm.CivManager.GetCivData(lastPlayerWithCities);
+                    if (civData != null) civName = civData.CivName;
                 }
+
+                // Afficher l'écran de victoire
+                var victoryScreen = FindAnyObjectByType<VictoryScreen>();
+                if (victoryScreen == null)
+                {
+                    var go = new GameObject("VictoryScreen");
+                    victoryScreen = go.AddComponent<VictoryScreen>();
+                }
+                victoryScreen.ShowVictory(lastPlayerWithCities, civName);
             }
         }
 

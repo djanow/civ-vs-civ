@@ -176,7 +176,21 @@ namespace CivVSCiv
         }
 
         /// <summary>
+        /// Retourne le chemin Resources d'un bâtiment KayKit selon le propriétaire.
+        /// </summary>
+        private static string GetKayKitBuildingPath(int ownerIndex)
+        {
+            return ownerIndex switch
+            {
+                0 => "KayKit/buildings/blue/building_castle_blue",
+                1 => "KayKit/buildings/green/building_church_green",
+                _ => "KayKit/buildings/red/building_tower_A_red",
+            };
+        }
+
+        /// <summary>
         /// Crée un marqueur 3D visible pour une cité sur la carte hexagonale.
+        /// Tente d'abord de charger un bâtiment KayKit, sinon cylindre de secours.
         /// </summary>
         private void CreateCityGameObject(CityData city)
         {
@@ -187,59 +201,78 @@ namespace CivVSCiv
                 ? _gridRenderer.HexToWorld(city.Location)
                 : Vector3.zero;
 
-            // Créer un marqueur cylindrique (colonne) pour la cité
-            var marker = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            marker.name = $"City_{city.CityName}";
+            GameObject marker;
+            float labelYOffset;
 
-            // Taille : plus haut pour les capitales
-            float height = city.IsCapital ? _cityMarkerHeight * 1.5f : _cityMarkerHeight;
-            marker.transform.localScale = new Vector3(_cityMarkerRadius, height, _cityMarkerRadius);
-            marker.transform.position = new Vector3(worldPos.x, height, worldPos.z);
+            // Essayer de charger un bâtiment KayKit selon le propriétaire
+            string buildingPath = GetKayKitBuildingPath(city.OwnerIndex);
+            GameObject kayKitPrefab = Resources.Load<GameObject>(buildingPath);
 
-            // Couleur par propriétaire
-            var mr = marker.GetComponent<MeshRenderer>();
-            var mat = new Material(Shader.Find("Standard"));
-            Color cityColor = city.OwnerIndex >= 0 && city.OwnerIndex < OwnerColors.Length
-                ? OwnerColors[city.OwnerIndex]
-                : new Color(0.5f, 0.5f, 0.5f);
-
-            // Capitales en couleur pleine, autres légèrement transparentes
-            if (city.IsCapital)
+            if (kayKitPrefab != null)
             {
-                mat.color = cityColor;
+                marker = Object.Instantiate(kayKitPrefab);
+                marker.name = $"City_{city.CityName}";
+                marker.transform.position = new Vector3(worldPos.x, 0f, worldPos.z);
+
+                // Capitales légèrement plus grandes
+                float scale = city.IsCapital ? 1.2f : 1.0f;
+                marker.transform.localScale = Vector3.one * scale;
+
+                // Étiquette au-dessus du bâtiment
+                labelYOffset = 2.8f;
             }
             else
             {
-                mat.color = new Color(cityColor.r * 0.8f, cityColor.g * 0.8f, cityColor.b * 0.8f);
+                // Secours : marqueur cylindrique
+                marker = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                marker.name = $"City_{city.CityName}";
+
+                float height = city.IsCapital ? _cityMarkerHeight * 1.5f : _cityMarkerHeight;
+                marker.transform.localScale = new Vector3(_cityMarkerRadius, height, _cityMarkerRadius);
+                marker.transform.position = new Vector3(worldPos.x, height, worldPos.z);
+
+                // Couleur par propriétaire
+                var mr = marker.GetComponent<MeshRenderer>();
+                var mat = new Material(Shader.Find("Standard"));
+                Color cityColor = city.OwnerIndex >= 0 && city.OwnerIndex < OwnerColors.Length
+                    ? OwnerColors[city.OwnerIndex]
+                    : new Color(0.5f, 0.5f, 0.5f);
+
+                if (city.IsCapital)
+                    mat.color = cityColor;
+                else
+                    mat.color = new Color(cityColor.r * 0.8f, cityColor.g * 0.8f, cityColor.b * 0.8f);
+                mr.sharedMaterial = mat;
+
+                // Anneau à la base pour les capitales
+                if (city.IsCapital)
+                {
+                    var ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                    ring.name = $"CityRing_{city.CityName}";
+                    ring.transform.SetParent(marker.transform);
+                    ring.transform.localPosition = Vector3.zero;
+                    ring.transform.localScale = new Vector3(1.8f, 0.1f, 1.8f);
+
+                    var ringMr = ring.GetComponent<MeshRenderer>();
+                    var ringMat = new Material(Shader.Find("Standard"));
+                    ringMat.color = new Color(cityColor.r, cityColor.g, cityColor.b, 0.3f);
+                    ringMat.SetFloat("_Mode", 3);
+                    ringMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                    ringMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                    ringMat.SetInt("_ZWrite", 0);
+                    ringMat.renderQueue = 3000;
+                    ringMr.sharedMaterial = ringMat;
+
+                    Destroy(ring.GetComponent<Collider>());
+                }
+
+                labelYOffset = 2.5f;
             }
-            mr.sharedMaterial = mat;
 
-            // Ajouter un anneau à la base pour les capitales
-            if (city.IsCapital)
-            {
-                var ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                ring.name = $"CityRing_{city.CityName}";
-                ring.transform.SetParent(marker.transform);
-                ring.transform.localPosition = Vector3.zero;
-                ring.transform.localScale = new Vector3(1.8f, 0.1f, 1.8f);
-
-                var ringMr = ring.GetComponent<MeshRenderer>();
-                var ringMat = new Material(Shader.Find("Standard"));
-                ringMat.color = new Color(cityColor.r, cityColor.g, cityColor.b, 0.3f);
-                ringMat.SetFloat("_Mode", 3);
-                ringMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                ringMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                ringMat.SetInt("_ZWrite", 0);
-                ringMat.renderQueue = 3000;
-                ringMr.sharedMaterial = ringMat;
-
-                Destroy(ring.GetComponent<Collider>());
-            }
-
-            // === Add TextMesh label for city name ===
+            // === TextMesh label pour le nom de la cité (commun aux deux cas) ===
             var label = new GameObject("Label");
             label.transform.SetParent(marker.transform);
-            label.transform.localPosition = new Vector3(0, 2.5f, 0);
+            label.transform.localPosition = new Vector3(0, labelYOffset, 0);
             var tm = label.AddComponent<TextMesh>();
             tm.text = city.CityName;
             tm.fontSize = 36;
@@ -250,7 +283,6 @@ namespace CivVSCiv
             label.transform.rotation = Quaternion.identity;
 
             // Supprimer le collider pour ne pas bloquer les clics sur le sol
-            // (les clics sont gérés par raycast sur le plan y=0)
             Destroy(marker.GetComponent<Collider>());
 
             _cityGameObjects[city.Location] = marker;
@@ -278,16 +310,16 @@ namespace CivVSCiv
 
         /// <summary>
         /// Met à jour la couleur du marqueur de cité (ex: après un changement de propriétaire).
+        /// Avec les bâtiments KayKit, on détruit et recrée le GameObject.
         /// </summary>
         public void UpdateCityColor(HexCoordinates location, int newOwner)
         {
-            if (_cityGameObjects.TryGetValue(location, out var go))
+            RemoveCityGameObject(location);
+            var cityData = _allCities.Find(c => c.Location == location);
+            if (cityData != null)
             {
-                var mr = go.GetComponent<MeshRenderer>();
-                if (mr != null && newOwner >= 0 && newOwner < OwnerColors.Length)
-                {
-                    mr.sharedMaterial.color = OwnerColors[newOwner];
-                }
+                cityData.OwnerIndex = newOwner;
+                CreateCityGameObject(cityData);
             }
         }
 

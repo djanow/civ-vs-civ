@@ -16,6 +16,7 @@ namespace CivVSCiv
         private Button _endTurnBtn;
         private Button _produireBtn;
         private Button _rechercherBtn;
+        private Button _sauverBtn;
 
         // Start screen
         private GameObject _startScreen;
@@ -80,15 +81,20 @@ namespace CivVSCiv
             _rechercherBtn.onClick.AddListener(OnRechercherClicked);
 
             // "Produire" button (middle on right side)
-            _produireBtn = CreateTopBarButton("ProduireBtn", bg.transform, 0.73f, 0.84f,
-                "Produire", 16, new Color(0.6f, 0.5f, 0.2f));
+            _produireBtn = CreateTopBarButton("ProduireBtn", bg.transform, 0.73f, 0.82f,
+                "Produire", 14, new Color(0.6f, 0.5f, 0.2f));
             _produireBtn.onClick.AddListener(OnProduireClicked);
+
+            // "Sauver" button (between Produire and EndTurn)
+            _sauverBtn = CreateTopBarButton("SauverBtn", bg.transform, 0.83f, 0.90f,
+                "Sauver", 14, new Color(0.3f, 0.3f, 0.5f));
+            _sauverBtn.onClick.AddListener(OnSauverClicked);
 
             // End Turn button (rightmost)
             var btnGo = new GameObject("EndTurnBtn", typeof(Image), typeof(Button));
             btnGo.transform.SetParent(bg.transform, false);
             var btnRT = btnGo.GetComponent<RectTransform>();
-            btnRT.anchorMin = new Vector2(0.86f, 0.15f);
+            btnRT.anchorMin = new Vector2(0.91f, 0.15f);
             btnRT.anchorMax = new Vector2(0.98f, 0.85f);
             btnRT.offsetMin = btnRT.offsetMax = Vector2.zero;
             btnGo.GetComponent<Image>().color = new Color(0.2f, 0.6f, 0.3f);
@@ -245,12 +251,20 @@ namespace CivVSCiv
                 cityPanel.Show(city);
         }
 
+        /// <summary>
+        /// Sauvegarde la partie courante.
+        /// </summary>
+        private void OnSauverClicked()
+        {
+            SaveManager.SaveGame();
+        }
+
         // ----------------------------------------------------------------
         // Start screen
         // ----------------------------------------------------------------
 
         /// <summary>
-        /// Crée l'écran titre "CIV VS CIV" avec bouton Jouer.
+        /// Crée l'écran titre "CIV VS CIV" avec bouton Jouer et éventuellement Charger.
         /// </summary>
         private void CreateStartScreen()
         {
@@ -293,8 +307,8 @@ namespace CivVSCiv
             var playBtn = new GameObject("JouerBtn", typeof(Image), typeof(Button));
             playBtn.transform.SetParent(_startScreen.transform, false);
             var playRT = playBtn.GetComponent<RectTransform>();
-            playRT.anchorMin = new Vector2(0.38f, 0.20f);
-            playRT.anchorMax = new Vector2(0.62f, 0.30f);
+            playRT.anchorMin = new Vector2(0.38f, 0.22f);
+            playRT.anchorMax = new Vector2(0.62f, 0.32f);
             playRT.offsetMin = Vector2.zero;
             playRT.offsetMax = Vector2.zero;
             playBtn.GetComponent<Image>().color = new Color(0.2f, 0.5f, 0.25f);
@@ -309,6 +323,28 @@ namespace CivVSCiv
             var playBtnComp = playBtn.GetComponent<Button>();
             playBtnComp.onClick.AddListener(OnJouerClicked);
 
+            // Charger button (visible seulement si une sauvegarde existe)
+            if (SaveManager.HasSave())
+            {
+                var chargerBtn = new GameObject("ChargerBtn", typeof(Image), typeof(Button));
+                chargerBtn.transform.SetParent(_startScreen.transform, false);
+                var chargerRT = chargerBtn.GetComponent<RectTransform>();
+                chargerRT.anchorMin = new Vector2(0.38f, 0.12f);
+                chargerRT.anchorMax = new Vector2(0.62f, 0.20f);
+                chargerRT.offsetMin = Vector2.zero;
+                chargerRT.offsetMax = Vector2.zero;
+                chargerBtn.GetComponent<Image>().color = new Color(0.25f, 0.25f, 0.4f);
+
+                var chargerLabel = CreateText("ChargerLabel", chargerBtn.transform, "Charger", 28);
+                var clRT = chargerLabel.GetComponent<RectTransform>();
+                clRT.anchorMin = Vector2.zero; clRT.anchorMax = Vector2.one;
+                clRT.offsetMin = clRT.offsetMax = Vector2.zero;
+                chargerLabel.alignment = TextAnchor.MiddleCenter;
+                chargerLabel.color = Color.white;
+
+                chargerBtn.GetComponent<Button>().onClick.AddListener(OnChargerClicked);
+            }
+
             // Make sure start screen is on top
             _startScreen.transform.SetAsLastSibling();
         }
@@ -318,6 +354,20 @@ namespace CivVSCiv
         /// </summary>
         private void OnJouerClicked()
         {
+            if (_startScreen != null)
+            {
+                Destroy(_startScreen);
+                _startScreen = null;
+            }
+            _gameStarted = true;
+        }
+
+        /// <summary>
+        /// Charge une partie sauvegardée et cache l'écran titre.
+        /// </summary>
+        private void OnChargerClicked()
+        {
+            SaveManager.LoadGame();
             if (_startScreen != null)
             {
                 Destroy(_startScreen);
