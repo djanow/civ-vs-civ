@@ -394,20 +394,6 @@ namespace CivVSCiv
         }
 
         /// <summary>
-        /// Rafraîchit le brouillard de guerre pour le joueur courant :
-        /// recalcule les cellules visibles à partir de toutes ses unités,
-        /// puis met à jour l'affichage des quads de brouillard.
-        /// </summary>
-        {
-            int playerIndex = CurrentPlayerIndex;
-            if (playerIndex < 0) return;
-
-            if (_unitManager != null)
-                _unitManager.UpdatePlayerVisibility(playerIndex);
-
-        }
-
-        /// <summary>
         /// Vérifie s'il y a des événements narratifs en attente pour ce joueur.
         /// Si oui, on reste en phase NarrativeEvent jusqu'à résolution.
         /// Sinon, on tente un micro-événement spontané (50% de chance).
