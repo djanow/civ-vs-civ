@@ -427,7 +427,7 @@ namespace CivVSCiv
         // ----------------------------------------------------------------
 
         /// <summary>
-        /// Crée l'anneau de sélection (cylindre vert aplati).
+        /// Crée l'anneau de sélection (cylindre jaune aplati).
         /// </summary>
         private static GameObject CreateSelectionRing()
         {
@@ -436,9 +436,9 @@ namespace CivVSCiv
 
             var mr = ring.GetComponent<MeshRenderer>();
 
-            // Mode transparent
+            // Jaune vif semi-transparent
             var mat = new Material(Shader.Find("Standard"));
-            mat.color = new Color(FriendlyUnitColor.r, FriendlyUnitColor.g, FriendlyUnitColor.b, 0.5f);
+            mat.color = new Color(1f, 0.92f, 0.2f, 0.6f);
             mat.SetFloat("_Mode", 3);
             mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
             mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
@@ -446,7 +446,7 @@ namespace CivVSCiv
             mat.renderQueue = 3000;
             mr.sharedMaterial = mat;
 
-            ring.transform.localScale = new Vector3(0.7f, 0.04f, 0.7f);
+            ring.transform.localScale = new Vector3(1.2f, 0.05f, 1.2f);
 
             // Supprimer le collider pour ne pas interférer avec les clics
             Destroy(ring.GetComponent<Collider>());

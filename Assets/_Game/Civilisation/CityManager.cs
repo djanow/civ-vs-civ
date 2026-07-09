@@ -233,6 +233,19 @@ namespace CivVSCiv
                 Destroy(ring.GetComponent<Collider>());
             }
 
+            // === Add TextMesh label for city name ===
+            var label = new GameObject("Label");
+            label.transform.SetParent(marker.transform);
+            label.transform.localPosition = new Vector3(0, 2.5f, 0);
+            var tm = label.AddComponent<TextMesh>();
+            tm.text = city.CityName;
+            tm.fontSize = 36;
+            tm.color = Color.white;
+            tm.alignment = TextAlignment.Center;
+            tm.anchor = TextAnchor.MiddleCenter;
+            tm.characterSize = 0.3f;
+            label.transform.rotation = Quaternion.identity;
+
             // Supprimer le collider pour ne pas bloquer les clics sur le sol
             // (les clics sont gérés par raycast sur le plan y=0)
             Destroy(marker.GetComponent<Collider>());

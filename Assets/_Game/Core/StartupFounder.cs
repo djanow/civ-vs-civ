@@ -103,6 +103,18 @@ namespace CivVSCiv
                         var pos = renderer.HexToWorld(unit.Position);
                         unit.transform.position = new Vector3(pos.x, 0.5f, pos.z);
                     }
+
+                    // Add TextMesh label above unit
+                    var label = new GameObject("Label");
+                    label.transform.SetParent(unit.transform);
+                    label.transform.localPosition = new Vector3(0, 1.2f, 0);
+                    var tm = label.AddComponent<TextMesh>();
+                    tm.text = unit.UnitName;
+                    tm.fontSize = 24;
+                    tm.color = unit.OwnerIndex == 0 ? new Color(0.8f, 0.5f, 1f) : new Color(0.5f, 0.7f, 1f);
+                    tm.alignment = TextAlignment.Center;
+                    tm.anchor = TextAnchor.MiddleCenter;
+                    tm.characterSize = 0.2f;
                 }
             }
         }
