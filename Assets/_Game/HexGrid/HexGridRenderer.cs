@@ -4,7 +4,7 @@ namespace CivVSCiv
 {
     public class HexGridRenderer : MonoBehaviour
     {
-        private const float _hexSize = 1.0f; // Flat-top hex size — center-to-vertex distance (must match tile scale)
+        private const float _hexSize = 1.1547f; // = 2/sqrt(3) — matches KayKit tile circumradius
 
         private HexCell[,] _cells;
         private int _width, _height;
