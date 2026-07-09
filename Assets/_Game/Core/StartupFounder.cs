@@ -11,7 +11,14 @@ namespace CivVSCiv
             bool ok = false;
             try { ok = InitializeGame(); }
             catch (System.Exception e) { Debug.LogError($"[Startup] Initialization failed: {e}"); }
-            if (ok) Debug.Log("[Startup] Pret a jouer !");
+            if (ok)
+            {
+                Debug.Log("[Startup] Pret a jouer !");
+
+                // First-turn guidance
+                yield return new WaitForSeconds(0.5f);
+                AutoSelectColon();
+            }
         }
 
         private bool InitializeGame()
@@ -26,9 +33,12 @@ namespace CivVSCiv
 
             Debug.Log($"[Startup] {um.AllUnits.Count} units on map");
 
+            // Fonder une ville capitale pour les joueurs IA (pas pour le joueur humain)
             var civs = new[] { "Tyr", "Athenes" };
             for (int i = 0; i < 2 && i < civs.Length; i++)
             {
+                if (i == 0) continue; // Joueur humain : fonde sa ville avec le Colon
+
                 var startPos = FindStartPosition(gm, i);
                 if (startPos != null)
                 {
@@ -78,6 +88,8 @@ namespace CivVSCiv
                     UnitVisuals.CreateCavalry(unit.transform, unit.OwnerIndex);
                 else if (name.Contains("bateau") || name.Contains("ship") || name.Contains("trière") || name.Contains("birème"))
                     UnitVisuals.CreateShip(unit.transform, unit.OwnerIndex);
+                else if (name.Contains("colon"))
+                    UnitVisuals.CreateScout(unit.transform, unit.OwnerIndex);
                 else
                     UnitVisuals.CreateScout(unit.transform, unit.OwnerIndex);
 
@@ -99,6 +111,55 @@ namespace CivVSCiv
                     var pos = renderer.HexToWorld(unit.Position);
                     unit.transform.position = new Vector3(pos.x, 0, pos.z);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Selectionne automatiquement le Colon du joueur humain et affiche le guide.
+        /// </summary>
+        private void AutoSelectColon()
+        {
+            var um = GameManager.Instance?.UnitManager;
+            if (um == null) return;
+
+            Unit colon = null;
+            foreach (var unit in um.AllUnits)
+            {
+                if (unit != null && unit.OwnerIndex == 0 &&
+                    unit.UnitName.ToLower().Contains("colon") && !unit.IsDead())
+                {
+                    colon = unit;
+                    break;
+                }
+            }
+
+            if (colon == null)
+            {
+                Debug.LogWarning("[Startup] Aucun Colon trouve pour le joueur 0");
+                return;
+            }
+
+            Debug.Log($"[Startup] Colon selectionne automatiquement : {colon.UnitName}");
+
+            // Centrer la camera sur le Colon
+            var camCtrl = FindAnyObjectByType<CameraController>();
+            if (camCtrl != null)
+            {
+                camCtrl.FocusOn(colon.transform.position + new Vector3(0, 0, -3f));
+            }
+
+            // Selectionner le Colon via InputHandler
+            var input = FindAnyObjectByType<InputHandler>();
+            if (input != null)
+            {
+                input.SelectUnitPublic(colon);
+            }
+
+            // Afficher le message de guidage
+            var hud = FindAnyObjectByType<HUDManager>();
+            if (hud != null)
+            {
+                hud.ShowFirstTurnGuidance("Deplacez le Colon vers un emplacement favorable et fondez votre premiere ville");
             }
         }
     }

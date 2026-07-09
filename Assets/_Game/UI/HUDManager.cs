@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections;
 
 namespace CivVSCiv
 {
@@ -25,6 +26,12 @@ namespace CivVSCiv
         // Action bar button (contextual, e.g. "Found City")
         private Button _actionBarBtn;
         private Text _actionBarLabel;
+        private Image _actionBarImage;
+        private Coroutine _pulseCoroutine;
+
+        // First-turn guidance text
+        private Text _guidanceText;
+        private bool _guidanceActive;
 
         // Start screen
         private GameObject _startScreen;
@@ -252,6 +259,10 @@ namespace CivVSCiv
             _actionBarBtn.gameObject.SetActive(true);
             _actionBarBtn.onClick.RemoveAllListeners();
             _actionBarBtn.onClick.AddListener(action);
+
+            // Pulse le bouton si c'est "Fonder une ville"
+            if (text.ToLower().Contains("fonder"))
+                StartPulseActionBar();
         }
 
         /// <summary>
@@ -261,6 +272,15 @@ namespace CivVSCiv
         {
             if (_actionBarBtn != null)
                 _actionBarBtn.gameObject.SetActive(false);
+
+            if (_pulseCoroutine != null)
+            {
+                StopCoroutine(_pulseCoroutine);
+                _pulseCoroutine = null;
+            }
+
+            if (_actionBarImage != null)
+                _actionBarImage.color = new Color(0.2f, 0.5f, 0.7f);
         }
 
         /// <summary>
@@ -277,7 +297,8 @@ namespace CivVSCiv
             btnRT.anchorMin = new Vector2(0.35f, 0.12f);
             btnRT.anchorMax = new Vector2(0.65f, 0.22f);
             btnRT.offsetMin = btnRT.offsetMax = Vector2.zero;
-            btnGo.GetComponent<Image>().color = new Color(0.2f, 0.5f, 0.7f);
+            _actionBarImage = btnGo.GetComponent<Image>();
+            _actionBarImage.color = new Color(0.2f, 0.5f, 0.7f);
 
             _actionBarLabel = new GameObject("ActionLabel", typeof(Text));
             _actionBarLabel.transform.SetParent(btnGo.transform, false);
@@ -293,6 +314,89 @@ namespace CivVSCiv
 
             _actionBarBtn = btnGo.GetComponent<Button>();
             _actionBarBtn.gameObject.SetActive(false);
+        }
+
+        // ----------------------------------------------------------------
+        // First-turn guidance
+        // ----------------------------------------------------------------
+
+        /// <summary>
+        /// Affiche un message de guidage en haut de l'ecran (premier tour).
+        /// Le message se dissimule automatiquement quand une ville est fondee.
+        /// </summary>
+        public void ShowFirstTurnGuidance(string message)
+        {
+            if (_guidanceText == null)
+                CreateGuidanceText();
+
+            _guidanceText.text = message;
+            _guidanceText.gameObject.SetActive(true);
+            _guidanceActive = true;
+        }
+
+        /// <summary>
+        /// Cache le message de guidage.
+        /// </summary>
+        public void HideGuidance()
+        {
+            if (_guidanceText != null)
+                _guidanceText.gameObject.SetActive(false);
+            _guidanceActive = false;
+        }
+
+        /// <summary>
+        /// Cree le texte de guidage sous la barre du HUD.
+        /// </summary>
+        private void CreateGuidanceText()
+        {
+            var canvas = FindAnyObjectByType<Canvas>();
+            if (canvas == null) return;
+
+            var go = new GameObject("GuidanceText", typeof(Text));
+            go.transform.SetParent(canvas.transform, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.05f, 0.85f);
+            rt.anchorMax = new Vector2(0.95f, 0.93f);
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
+
+            _guidanceText = go.GetComponent<Text>();
+            _guidanceText.text = "";
+            _guidanceText.fontSize = 26;
+            _guidanceText.color = new Color(1f, 0.9f, 0.3f);
+            _guidanceText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            _guidanceText.alignment = TextAnchor.MiddleCenter;
+            _guidanceText.raycastTarget = false;
+            _guidanceText.gameObject.SetActive(false);
+        }
+
+        // ----------------------------------------------------------------
+        // Action bar pulsing
+        // ----------------------------------------------------------------
+
+        /// <summary>
+        /// Lance un effet de pulse lumineux sur le bouton d'action.
+        /// </summary>
+        public void StartPulseActionBar()
+        {
+            if (_pulseCoroutine != null)
+                StopCoroutine(_pulseCoroutine);
+            if (_actionBarImage != null)
+                _pulseCoroutine = StartCoroutine(PulseActionBar());
+        }
+
+        private IEnumerator PulseActionBar()
+        {
+            float duration = 1.2f;
+            Color baseColor = new Color(0.2f, 0.5f, 0.7f);
+            Color pulseColor = new Color(0.6f, 0.9f, 1.0f);
+            WaitForEndOfFrame wf = new WaitForEndOfFrame();
+
+            while (true)
+            {
+                float t = Mathf.PingPong(Time.unscaledTime, duration) / duration;
+                _actionBarImage.color = Color.Lerp(baseColor, pulseColor, t);
+                yield return wf;
+            }
         }
 
         private void OnTurnStarted(GameEvents.PlayerTurnStarted evt)

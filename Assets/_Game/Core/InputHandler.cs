@@ -473,6 +473,15 @@ namespace CivVSCiv
         /// </summary>
         public Unit GetSelectedUnit() => _selectedUnit;
 
+        /// <summary>
+        /// Selectionne une unite publiquement (utilise par StartupFounder).
+        /// </summary>
+        public void SelectUnitPublic(Unit unit)
+        {
+            if (unit == null) return;
+            SelectUnit(unit);
+        }
+
         // ----------------------------------------------------------------
         // Fondation de cité
         // ----------------------------------------------------------------
@@ -501,6 +510,9 @@ namespace CivVSCiv
             // Masquer le bouton d'action
             var hud = FindAnyObjectByType<HUDManager>();
             hud?.HideActionBar();
+
+            // Dissimuler le message de guidage du premier tour
+            hud?.HideGuidance();
 
             Debug.Log($"[Input] Cité fondée : {cityName} à {unit.Position}");
         }

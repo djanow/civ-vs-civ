@@ -21,10 +21,10 @@ namespace CivVSCiv
                 cam.clearFlags = CameraClearFlags.SolidColor;
                 cam.backgroundColor = new Color(0.05f, 0.08f, 0.15f);
                 cam.orthographic = true;
-                cam.orthographicSize = 22f;
+                cam.orthographicSize = 20f;
                 cam.nearClipPlane = 0.1f; cam.farClipPlane = 500f;
-                cam.transform.position = new Vector3(35, 35, 25);
-                cam.transform.rotation = Quaternion.Euler(90, 0, 0);
+                cam.transform.position = new Vector3(35, 25, 20);
+                cam.transform.rotation = Quaternion.Euler(53, 0, 0);
                 if (cam.GetComponent<CameraController>() == null)
                 {
                     var cc = cam.gameObject.AddComponent<CameraController>();

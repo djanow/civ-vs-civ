@@ -114,6 +114,7 @@ namespace CivVSCiv
             {
                 UnitData warriorData = CreateDefaultUnitData("Guerrier", UnitCategory.Infantry, 3, 3, 10, 2, 40);
                 UnitData scoutData = CreateDefaultUnitData("Eclaireur", UnitCategory.Recon, 2, 1, 8, 3, 30);
+                UnitData colonData = CreateDefaultUnitData("Colon", UnitCategory.Civil, 0, 0, 5, 2, 0);
 
                 // Verifier que la position de depart est valide (terrain praticable)
                 HexCoordinates warriorPos = startPositions[i];
@@ -155,6 +156,9 @@ namespace CivVSCiv
                 }
 
                 SpawnUnit(scoutData, scoutPos, i);
+
+                // Placer le colon sur la position de depart
+                SpawnUnit(colonData, startPositions[i], i);
             }
 
             Debug.Log($"[UnitManager] Unites de depart creees pour {startPositions.Length} joueur(s).");
