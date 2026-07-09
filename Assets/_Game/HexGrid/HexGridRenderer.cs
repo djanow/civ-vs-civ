@@ -4,7 +4,7 @@ namespace CivVSCiv
 {
     public class HexGridRenderer : MonoBehaviour
     {
-        [SerializeField] private float _hexSize = 1f;
+        private const float _hexSize = 1.0f; // Flat-top hex size — center-to-vertex distance (must match tile scale)
 
         private HexCell[,] _cells;
         private int _width, _height;
