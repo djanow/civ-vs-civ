@@ -111,8 +111,8 @@ namespace CivVSCiv
         {
             // Flat-top: distance between hex centers = 1.732w (width) horizontally, 1.5h vertically
             // KayKit tiles are approx 1 unit wide, so spacing is:
-            float x = _hexSize * 0.87f * (1.5f * hex.Q);
-            float z = _hexSize * 0.87f * (Mathf.Sqrt(3f) / 2f * hex.Q + Mathf.Sqrt(3f) * hex.R);
+            float x = _hexSize * (1.5f * hex.Q);
+            float z = _hexSize * (Mathf.Sqrt(3f) / 2f * hex.Q + Mathf.Sqrt(3f) * hex.R);
             return new Vector3(x, 0f, z);
         }
 

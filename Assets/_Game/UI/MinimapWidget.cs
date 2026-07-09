@@ -12,7 +12,7 @@ namespace CivVSCiv
         private Camera _minimapCamera;
         private RenderTexture _minimapRT;
         private Camera _mainCamera;
-        private bool _visible = true;
+        private bool _visible = false;
         private Button _toggleBtn;
         private GameObject _minimapGO;
 
@@ -133,7 +133,7 @@ namespace CivVSCiv
             float mh = GameManager.Instance?.Height ?? 30;
             float cw = _mainCamera.orthographicSize * _mainCamera.aspect;
             float ch = _mainCamera.orthographicSize;
-            float ww = mw * 0.87f * 1.5f, wh = mh * 0.87f * Mathf.Sqrt(3f);
+            float ww = mw * 1.5f, wh = mh * Mathf.Sqrt(3f);
             float nx = _mainCamera.transform.position.x / ww, nz = _mainCamera.transform.position.z / wh;
             float nw = cw * 2f / ww, nh = ch * 2f / wh;
             _viewportRect.anchorMin = new Vector2(nx - nw / 2f, 1f - nz + nh / 2f);

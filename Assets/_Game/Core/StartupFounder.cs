@@ -86,7 +86,7 @@ namespace CivVSCiv
                     sphere.name = unit.UnitName;
                     sphere.transform.SetParent(unit.transform);
                     sphere.transform.localPosition = Vector3.zero;
-                    sphere.transform.localScale = new Vector3(0.35f, 0.35f, 0.35f);
+                    sphere.transform.localScale = new Vector3(0.6f, 0.6f, 0.6f);
 
                     // Couleur par joueur
                     var mr = sphere.GetComponent<MeshRenderer>();
