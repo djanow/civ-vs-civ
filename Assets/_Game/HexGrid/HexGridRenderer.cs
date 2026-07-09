@@ -4,7 +4,7 @@ namespace CivVSCiv
 {
     public class HexGridRenderer : MonoBehaviour
     {
-        private const float _hexSize = 1.1547f; // = 2/sqrt(3) — matches KayKit tile circumradius
+        private const float _hexSize = 1.0f; // KayKit tiles are radius=1, pointy-top spacing = sqrt(3) by 1.5
 
         private HexCell[,] _cells;
         private int _width, _height;
@@ -86,9 +86,7 @@ namespace CivVSCiv
                         var tile = Instantiate(_tilePrefabs[idx], _gridParent);
                         tile.name = $"T_{x}_{y}";
                         tile.transform.position = new Vector3(pos.x, 0, pos.z);
-                        tile.transform.localScale = new Vector3(0.95f, 1f, 0.95f);
-                        tile.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
-                        // KayKit tiles are pointy-top; rotate 90deg to match flat-top grid layout
+                        // KayKit hex tiles are already pointy-top — no rotation or scale adjustment needed
 
                         if (_decoPrefabs[idx] != null)
                         {
@@ -113,16 +111,17 @@ namespace CivVSCiv
 
         public Vector3 HexToWorld(HexCoordinates hex)
         {
-            float x = _hexSize * (1.5f * hex.Q);
-            float z = _hexSize * (Mathf.Sqrt(3f) / 2f * hex.Q + Mathf.Sqrt(3f) * hex.R);
+            // Pointy-top layout: x = size * sqrt(3) * (q + r/2),  z = size * 3/2 * r
+            float x = _hexSize * (Mathf.Sqrt(3f) * hex.Q + Mathf.Sqrt(3f) / 2f * hex.R);
+            float z = _hexSize * (1.5f * hex.R);
             return new Vector3(x, 0f, z);
         }
 
         public HexCoordinates WorldToHex(Vector3 wp)
         {
-            // Flat-top inverse
-            float q = (2f / 3f) * wp.x / _hexSize;
-            float r = (-1f / 3f * wp.x + Mathf.Sqrt(3f) / 3f * wp.z) / _hexSize;
+            // Pointy-top inverse:  q = (sqrt(3)/3 * x - 1/3 * z) / size,  r = (2/3 * z) / size
+            float q = (Mathf.Sqrt(3f) / 3f * wp.x - 1f / 3f * wp.z) / _hexSize;
+            float r = (2f / 3f * wp.z) / _hexSize;
             return HexRound(q, r);
         }
 
