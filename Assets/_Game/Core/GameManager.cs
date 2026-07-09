@@ -39,6 +39,7 @@ namespace CivVSCiv
         [SerializeField] private EventManager _eventManager;
         [SerializeField] private InterludeManager _interludeManager;
         [SerializeField] private ResearchManager _researchManager;
+        [SerializeField] private AudioManager _audioManager;
         private HexGridRenderer _gridRenderer;
 
         public GameState CurrentState { get; set; } = GameState.MainMenu;
@@ -60,6 +61,7 @@ namespace CivVSCiv
         public EventManager EventManager => _eventManager;
         public InterludeManager InterludeManager => _interludeManager;
         public ResearchManager ResearchManager => _researchManager;
+        public AudioManager AudioManager => _audioManager;
         public TurnManager TurnManager => _turnManager;
         public GameSetupData SetupData => _setupData;
 
@@ -112,6 +114,7 @@ namespace CivVSCiv
             _eventManager   = FindOrCreate<EventManager>("EventManager");
             _interludeManager = FindOrCreate<InterludeManager>("InterludeManager");
             _researchManager = FindOrCreate<ResearchManager>("ResearchManager");
+            _audioManager = FindOrCreate<AudioManager>("AudioManager");
 
             _gridRenderer = FindAnyObjectByType<HexGridRenderer>();
             if (_gridRenderer == null)

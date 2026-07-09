@@ -292,6 +292,9 @@ namespace CivVSCiv
 
             if (playersWithCities <= 1 && _playerCount > 1 && lastPlayerWithCities >= 0)
             {
+                // Audio feedback for victory
+                GameManager.Instance?.AudioManager?.PlayVictory();
+
                 Debug.Log($"[TurnManager] Victoire! Joueur {lastPlayerWithCities} gagne la partie!");
                 gm.SetGameOver();
 
@@ -377,6 +380,9 @@ namespace CivVSCiv
             _phaseIndex = -1; // Sera incremente a 0 par CheckNarrativeEvent -> AdvanceAfterNarrative
             CurrentPhase = INITIAL_PHASE;
             CurrentPlayerIndex = playerIndex;
+
+            // Audio feedback for turn start
+            GameManager.Instance?.AudioManager?.PlayTurnStart();
 
             EventBus.Publish(new GameEvents.PlayerTurnStarted
             {

@@ -184,6 +184,9 @@ namespace CivVSCiv
             _selectionRing.transform.SetParent(unit.transform, true);
             _selectionRing.SetActive(true);
 
+            // Audio feedback for selection
+            GameManager.Instance?.AudioManager?.PlayUIClick();
+
             Debug.Log($"[Input] Unité sélectionnée : {unit.UnitName} (propriétaire {unit.OwnerIndex})");
         }
 
@@ -247,6 +250,9 @@ namespace CivVSCiv
 
             // Mettre à jour le brouillard de guerre
             UpdateFogAfterMovement();
+
+            // Audio feedback for movement
+            GameManager.Instance?.AudioManager?.PlayUnitMove();
 
             Debug.Log($"[Input] {_selectedUnit.UnitName} déplacé vers {target}");
         }
@@ -328,6 +334,9 @@ namespace CivVSCiv
             var cells = GameManager.Instance.Cells;
             var (ex, ey) = enemyUnit.Position.ToOffset();
             var defenderCell = cells[ex, ey];
+
+            // Audio feedback for combat
+            GameManager.Instance?.AudioManager?.PlayCombat();
 
             // Exécuter le combat via CombatResolver
             var result = CombatResolver.ExecuteCombat(_selectedUnit, enemyUnit, defenderCell);

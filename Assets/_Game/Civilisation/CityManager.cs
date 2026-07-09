@@ -168,6 +168,9 @@ namespace CivVSCiv
             // Créer le GameObject visible sur la carte
             CreateCityGameObject(cityData);
 
+            // Audio feedback for city construction
+            GameManager.Instance?.AudioManager?.PlayCityBuild();
+
             Debug.Log($"[CityManager] Cité fondée : {name} à {location} (joueur {owner})");
             return cityData;
         }
