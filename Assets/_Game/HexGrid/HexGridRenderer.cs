@@ -1,26 +1,19 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace CivVSCiv
 {
     public class HexGridRenderer : MonoBehaviour
     {
-        [Header("KayKit Prefabs (glisser depuis Assets/KayKit.../Prefabs/)")]
-        [SerializeField] private GameObject _prefabPlains;
-        [SerializeField] private GameObject _prefabForest;
-        [SerializeField] private GameObject _prefabHill;
-        [SerializeField] private GameObject _prefabMountain;
-        [SerializeField] private GameObject _prefabWater;
-        [SerializeField] private GameObject _prefabDesert;
-        [SerializeField] private GameObject _prefabMarsh;
-        [SerializeField] private GameObject _prefabOcean;
-
         [SerializeField] private float _hexSize = 1f;
+        [SerializeField] private float _tileHeight = 0.4f;
+        [SerializeField] private float _mountainHeight = 0.9f;
 
         private HexCell[,] _cells;
         private int _width, _height;
         private Transform _gridParent;
-        private static Material[] _fallbackMats;
+        private GameObject[] _tilePrefabs; // indexed by TileType
         private bool _useKayKit;
 
         private static readonly Color[] FallbackColors = {
@@ -30,47 +23,90 @@ namespace CivVSCiv
             new Color(0.95f, 0.85f, 0.5f), new Color(0.45f, 0.55f, 0.3f),
         };
 
+        // KayKit naming conventions for auto-discovery
+        private static readonly string[][] KayKitKeywords = {
+            new[]{"water", "sea", "ocean_shallow", "coast"},   // Sea
+            new[]{"ocean", "deep_water", "sea_deep"},           // Ocean
+            new[]{"mountain", "rock", "cliff"},                 // Mountain
+            new[]{"hill", "hills", "rocky"},                    // Hill
+            new[]{"forest", "woods", "pine", "tree"},           // Forest
+            new[]{"grass", "plains", "meadow", "plain"},        // Plain
+            new[]{"desert", "sand", "dune"},                    // Desert
+            new[]{"marsh", "swamp", "wetland"},                 // Marsh
+        };
+
         private void Awake()
         {
             _gridParent = new GameObject("HexGrid").transform;
             _gridParent.SetParent(transform);
-            _useKayKit = (_prefabPlains != null || _prefabWater != null);
-
-            if (!_useKayKit)
-            {
-                _fallbackMats = new Material[8];
-                var shader = Shader.Find("Standard");
-                for (int i = 0; i < 8; i++)
-                    _fallbackMats[i] = new Material(shader) { color = FallbackColors[i] };
-            }
-
+            _tilePrefabs = new GameObject[8];
+            AutoDiscoverKayKit();
             EventBus.Subscribe<GameEvents.MapGenerated>(OnMapGenerated);
         }
 
+        private void AutoDiscoverKayKit()
+        {
+            // Find all GameObjects in the project (only works with loaded assets)
+            var allAssets = Resources.FindObjectsOfTypeAll<GameObject>()
+                .Where(go => go.scene.name == null && go.transform.parent == null)
+                .ToArray();
+
+            int found = 0;
+            foreach (var go in allAssets)
+            {
+                string name = go.name.ToLowerInvariant();
+                for (int i = 0; i < 8; i++)
+                {
+                    if (_tilePrefabs[i] != null) continue;
+                    foreach (var kw in KayKitKeywords[i])
+                    {
+                        if (name.Contains(kw))
+                        {
+                            _tilePrefabs[i] = go;
+                            found++;
+                            Debug.Log($"[KayKit] Auto-linked {go.name} → TileType {i}");
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (found >= 2)
+            {
+                _useKayKit = true;
+                Debug.Log($"[KayKit] Auto-discovered {found}/{8} tile prefabs!");
+            }
+            else
+            {
+                Debug.LogWarning("[KayKit] Could not auto-discover tiles. Using colored cubes.");
+            }
+        }
+
         private void OnDestroy() => EventBus.Unsubscribe<GameEvents.MapGenerated>(OnMapGenerated);
+
+        private GameObject GetPrefabFor(TileType t)
+        {
+            if (!_useKayKit) return null;
+            int idx = (int)t;
+            if (idx < 0 || idx >= 8) return null;
+
+            // Fallback chain for missing prefabs
+            if (_tilePrefabs[idx] != null) return _tilePrefabs[idx];
+            // Try similar types
+            if (t == TileType.Ocean) return _tilePrefabs[(int)TileType.Sea];
+            if (t == TileType.Desert || t == TileType.Marsh) return _tilePrefabs[(int)TileType.Plain];
+            if (t == TileType.Forest || t == TileType.Hill) return _tilePrefabs[(int)TileType.Plain];
+            return _tilePrefabs[(int)TileType.Plain]; // ultimate fallback
+        }
 
         private void OnMapGenerated(GameEvents.MapGenerated evt)
         {
             _cells = evt.Cells;
             _width = evt.Width;
             _height = evt.Height;
+            // Retry auto-discovery (now that assets are loaded)
+            if (!_useKayKit) AutoDiscoverKayKit();
             BuildGrid();
-        }
-
-        GameObject PrefabFor(TileType t)
-        {
-            switch (t)
-            {
-                case TileType.Sea: return _prefabWater;
-                case TileType.Ocean: return _prefabOcean ?? _prefabWater;
-                case TileType.Mountain: return _prefabMountain ?? _prefabHill;
-                case TileType.Hill: return _prefabHill;
-                case TileType.Forest: return _prefabForest;
-                case TileType.Plain: return _prefabPlains;
-                case TileType.Desert: return _prefabDesert ?? _prefabPlains;
-                case TileType.Marsh: return _prefabMarsh ?? _prefabPlains;
-                default: return _prefabPlains;
-            }
         }
 
         private void BuildGrid()
@@ -93,13 +129,12 @@ namespace CivVSCiv
                 {
                     var cell = _cells[x, y];
                     var pos = HexToWorld(cell.Coordinates);
+                    var prefab = GetPrefabFor(cell.TileType);
 
                     GameObject go;
-                    var kayPrefab = PrefabFor(cell.TileType);
-
-                    if (_useKayKit && kayPrefab != null)
+                    if (_useKayKit && prefab != null)
                     {
-                        go = Instantiate(kayPrefab, _gridParent);
+                        go = Instantiate(prefab, _gridParent);
                         go.transform.position = new Vector3(pos.x, 0, pos.z);
                     }
                     else
@@ -107,15 +142,15 @@ namespace CivVSCiv
                         go = GameObject.CreatePrimitive(PrimitiveType.Cube);
                         go.transform.SetParent(_gridParent);
                         go.transform.position = new Vector3(pos.x, 0, pos.z);
-                        go.transform.localScale = new Vector3(0.85f, 0.4f, 0.85f);
+
+                        float h = _tileHeight;
+                        if (cell.TileType == TileType.Mountain) h = _mountainHeight;
+                        go.transform.localScale = new Vector3(0.85f, h, 0.85f);
 
                         int idx = (int)cell.TileType;
                         if (idx < 0 || idx >= 8) idx = 0;
                         var mr = go.GetComponent<MeshRenderer>();
-                        mr.material = _fallbackMats[idx];
-
-                        if (cell.TileType == TileType.Mountain)
-                            go.transform.localScale = new Vector3(0.85f, 0.9f, 0.85f);
+                        mr.material = new Material(Shader.Find("Standard")) { color = FallbackColors[idx] };
                     }
 
                     go.name = $"T_{x}_{y}";
