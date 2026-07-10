@@ -12,6 +12,7 @@ namespace CivVSCiv
         private GameObject[] _tilePrefabs;
         private GameObject[] _decoPrefabs;
         private bool _useKayKit;
+        private static Material[] _sharedMats;
 
         private static readonly Color[] FallbackColors = {
             new Color(0.2f, 0.6f, 1.0f), new Color(0.1f, 0.3f, 0.7f),
@@ -86,12 +87,17 @@ namespace CivVSCiv
                         var tile = Instantiate(_tilePrefabs[idx], _gridParent);
                         tile.name = $"T_{x}_{y}";
                         tile.transform.position = new Vector3(pos.x, 0, pos.z);
-                        // KayKit hex tiles are already pointy-top — no rotation or scale adjustment needed
+
+                        // Override KayKit embedded colors with our palette
+                        foreach (var mr in tile.GetComponentsInChildren<MeshRenderer>())
+                            mr.material = GetSharedMaterial(idx);
 
                         if (_decoPrefabs[idx] != null)
                         {
                             var deco = Instantiate(_decoPrefabs[idx], tile.transform);
                             deco.transform.localPosition = new Vector3(0, 0.05f, 0);
+                            foreach (var mr in deco.GetComponentsInChildren<MeshRenderer>())
+                                mr.material = GetSharedMaterial(idx);
                         }
                     }
                     else
@@ -131,6 +137,29 @@ namespace CivVSCiv
             float qd = Mathf.Abs(rq - q), rd = Mathf.Abs(rr - r), sd = Mathf.Abs(rs - s);
             if (qd > rd && qd > sd) rq = -rr - rs; else if (rd > sd) rr = -rq - rs;
             return new HexCoordinates(rq, rr);
+        }
+        private static Material GetSharedMaterial(int idx)
+        {
+            if (_sharedMats == null)
+            {
+                _sharedMats = new Material[9];
+                var shader = Shader.Find("Standard");
+                Color[] colors = {
+                    new Color(0.18f, 0.45f, 0.70f), // Sea - muted blue
+                    new Color(0.10f, 0.25f, 0.50f), // Ocean - deep blue
+                    new Color(0.42f, 0.38f, 0.32f), // Mountain - brown-gray
+                    new Color(0.35f, 0.60f, 0.25f), // Hill - muted green
+                    new Color(0.12f, 0.38f, 0.15f), // Forest - dark green
+                    new Color(0.45f, 0.60f, 0.28f), // Plain - green
+                    new Color(0.72f, 0.62f, 0.38f), // Desert - sandy
+                    new Color(0.32f, 0.40f, 0.20f), // Marsh - brown-green
+                    new Color(0.65f, 0.72f, 0.80f), // Ice - blue-white
+                };
+                for (int i = 0; i < 9; i++)
+                    _sharedMats[i] = new Material(shader) { color = colors[i] };
+            }
+            if (idx < 0 || idx >= 9) idx = 0;
+            return _sharedMats[idx];
         }
     }
 }
