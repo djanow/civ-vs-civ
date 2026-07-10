@@ -300,7 +300,7 @@ namespace CivVSCiv
             _actionBarImage = btnGo.GetComponent<Image>();
             _actionBarImage.color = new Color(0.2f, 0.5f, 0.7f);
 
-            _actionBarLabel = new GameObject("ActionLabel", typeof(Text));
+            _actionBarLabel = new GameObject("ActionLabel").AddComponent<Text>();
             _actionBarLabel.transform.SetParent(btnGo.transform, false);
             var lblRT = _actionBarLabel.GetComponent<RectTransform>();
             lblRT.anchorMin = Vector2.zero; lblRT.anchorMax = Vector2.one;
