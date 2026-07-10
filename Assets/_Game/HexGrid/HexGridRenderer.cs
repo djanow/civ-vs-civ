@@ -14,7 +14,7 @@ namespace CivVSCiv
         private bool _useKayKit;
 
         private static readonly Color[] FallbackColors = {
-            new Color(0.16f, 0.48f, 0.8f), new Color(0.08f, 0.24f, 0.56f),
+            new Color(0.2f, 0.6f, 1.0f), new Color(0.1f, 0.3f, 0.7f),
             new Color(0.44f, 0.4f, 0.32f), new Color(0.36f, 0.68f, 0.24f),
             new Color(0.08f, 0.4f, 0.12f), new Color(0.48f, 0.68f, 0.28f),
             new Color(0.76f, 0.68f, 0.4f), new Color(0.36f, 0.44f, 0.24f),
