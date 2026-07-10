@@ -14,8 +14,8 @@ namespace CivVSCiv
         private bool _dragging;
 
         // Map bounds (computed from grid on first Update)
-        private float _minX = -10f, _maxX = 105f;
-        private float _minZ = -10f, _maxZ = 55f;
+        private float _minX = -5f, _maxX = 95f;
+        private float _minZ = -5f, _maxZ = 45f;
         private bool _boundsComputed;
 
         void Awake()
@@ -62,10 +62,10 @@ namespace CivVSCiv
             if (gm != null && gm.Width > 0 && gm.Height > 0)
             {
                 float s3 = Mathf.Sqrt(3f);
-                _minX = -10f;
-                _maxX = s3 * (gm.Width + gm.Height / 2f) + 10f;
-                _minZ = -10f;
-                _maxZ = 1.5f * gm.Height + 10f;
+                _minX = -5f;
+                _maxX = s3 * (gm.Width + gm.Height / 2f) + 5f;
+                _minZ = -5f;
+                _maxZ = 1.5f * gm.Height + 5f;
                 _boundsComputed = true;
             }
         }

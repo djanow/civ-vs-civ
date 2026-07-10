@@ -23,7 +23,7 @@ namespace CivVSCiv
                 cam.orthographic = true;
                 cam.orthographicSize = 20f;
                 cam.nearClipPlane = 0.1f; cam.farClipPlane = 500f;
-                cam.transform.position = new Vector3(35, 25, 20);
+                cam.transform.position = new Vector3(48, 25, 20);
                 cam.transform.rotation = Quaternion.Euler(53, 0, 0);
                 if (cam.GetComponent<CameraController>() == null)
                 {

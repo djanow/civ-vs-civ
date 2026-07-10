@@ -13,7 +13,6 @@ namespace CivVSCiv
         private RenderTexture _minimapRT;
         private Camera _mainCamera;
         private bool _visible = false;
-        private Button _toggleBtn;
         private GameObject _minimapGO;
 
         private void Awake()
@@ -23,12 +22,6 @@ namespace CivVSCiv
 
             // Minimap desactivee : ne pas creer les elements UI
             EventBus.Subscribe<GameEvents.MapGenerated>(OnMapGenerated);
-        }
-
-        private void ToggleMinimap()
-        {
-            _visible = !_visible;
-            if (_minimapGO != null) _minimapGO.SetActive(_visible);
         }
 
         private void OnDestroy()
